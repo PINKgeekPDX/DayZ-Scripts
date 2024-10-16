@@ -11,7 +11,8 @@ class BrokenLegsMdfr: ModifierBase
 
 	override void Init()
 	{
-		m_TrackActivatedTime = false;
+		m_TrackActivatedTime 	= false;
+		m_AnalyticsStatsEnabled = true;
 		m_ID 					= eModifiers.MDF_BROKEN_LEGS;
 		m_TickIntervalInactive 	= DEFAULT_TICK_TIME_INACTIVE;
 		m_TickIntervalActive 	= 0.5;

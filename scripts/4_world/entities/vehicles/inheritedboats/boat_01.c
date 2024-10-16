@@ -134,13 +134,12 @@ class Boat_01_ColorBase : BoatScript
 	{
 		return true;
 	}
-/*
+
 	override void OnDamageDestroyed(int oldLevel)
 	{
-		SetAnimationPhase("ShowDamage",1);
-		SetAnimationPhase("HideDamage",0);
+		SetAnimationPhase("HideAntiwater",1);
 	}
-*/
+
 	override void OnDebugSpawn()
 	{
 		float amount = GetFluidCapacity(BoatFluid.FUEL);

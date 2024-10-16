@@ -27,6 +27,8 @@ class ModifierBase
 	EActivationType		m_ActivationType;
 	eModifierSyncIDs	m_SyncID; //! max 32 synced modifiers supported, 0 == no sync
 	PluginPlayerStatus	m_ModulePlayerStatus;
+	
+	protected bool 		m_AnalyticsStatsEnabled;
 
 	void ModifierBase()
 	{
@@ -40,8 +42,11 @@ class ModifierBase
 		Init();
 	}
 	
-	void Init();
-
+	void Init()
+	{
+		if (m_AnalyticsStatsEnabled)
+			AnalyticsRegisterStat(m_ID, "state");
+	}
 
 	PlayerBase GetPlayer()
 	{
@@ -57,7 +62,6 @@ class ModifierBase
 	{
 		m_Manager.m_ParamList.Insert(object);
 	}
-
 
 	void ResetLastTickTime()
 	{
@@ -181,12 +185,19 @@ class ModifierBase
 
 	//! is called when an inactive modifier gets activated during gameplay, is NOT called on activation upon player server connection(see OnReconnect)
 	void OnActivate(PlayerBase player);
+
 	//! is called when a modifier is being re-activated upon player server connection, use to activate systems which are not persistent and need to run alongside active modifiers
 	void OnReconnect(PlayerBase player);
 	void OnDeactivate(PlayerBase player);
 	
 	void Activate()
 	{
+		if (m_AnalyticsStatsEnabled)
+		{
+			AnalyticsRegisterStat(m_ID, "state");
+			AnalyticsSetState(m_ID, 1.0);
+		}
+
 		m_IsActive = true;
 		m_Player.m_SyncedModifiers = (m_Player.m_SyncedModifiers | m_SyncID);
 		if (m_ActivationType == EActivationType.TRIGGER_EVENT_ON_ACTIVATION)
@@ -207,6 +218,9 @@ class ModifierBase
 	{
 		if (!m_IsActive)
 			return;
+		
+		if (m_AnalyticsStatsEnabled)
+			AnalyticsSetState(m_ID, -1.0);
 
 		m_Player.m_SyncedModifiers = (m_Player.m_SyncedModifiers & ~m_SyncID);
 		m_ShouldBeActive = false;
@@ -220,4 +234,35 @@ class ModifierBase
 	void OnStoreSave(ParamsWriteContext ctx);
 
 	private void OnTick(PlayerBase player, float deltaT);
+	
+	
+	private void AnalyticsRegisterStat(int modifierId, string keySuffix)
+	{
+		string modifierIdName = EnumTools.EnumToString(eModifiers, modifierId);
+		modifierIdName.ToLower();
+
+		m_Player.StatRegister(string.Format("%1_%2", modifierIdName, keySuffix));
+	}
+	
+	//! special treating of the value to set state only (without counter use)
+	private void AnalyticsSetState(int modifierId, float value)
+	{
+		string modifierStatKey = EnumTools.EnumToString(eModifiers, modifierId);
+		modifierStatKey.ToLower();
+		
+		string formatttedKey = string.Format("%1_state", modifierStatKey);
+		if (value == -1.0)
+		{
+			if(m_Player.StatGet(formatttedKey) == 0.0)
+				return;
+		}
+		
+		if (value == 1.0)
+		{
+			if(m_Player.StatGet(formatttedKey) == 1.0)
+				return;		
+		}
+
+		m_Player.StatUpdate(formatttedKey, value);	
+	}
 }

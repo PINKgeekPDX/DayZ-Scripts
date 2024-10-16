@@ -11,6 +11,7 @@ class ServerBrowserFavoritesTabConsolePages extends ServerBrowserTabConsolePages
 		m_Root.FindAnyWidget("spacer").Show(false);
 		m_Root.FindAnyWidget("spacer1").Show(false);
 		m_Root.FindAnyWidget("spacer5").Show(false);
+		m_Root.FindAnyWidget("server_list_root_nav_wrapper").Show(false);
 		m_RefreshList.Show(m_MouseKeyboardControlled);
 		
 		SwitchToDetails(false);
@@ -24,6 +25,7 @@ class ServerBrowserFavoritesTabConsolePages extends ServerBrowserTabConsolePages
 		TStringArray favIds = m_Menu.GetFavoritedServerIds();
 		m_TotalLoadedServers = favIds.Count();
 		super.OnLoadServersAsyncFinished();
+		SetFocusServers();
 	}
 	
 	protected override void LoadEntries(int cur_page_index , GetServersResultRowArray page_entries)

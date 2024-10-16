@@ -11,6 +11,7 @@ class HeatBufferMdfr : ModifierBase
 	override void Init()
 	{
 		m_TrackActivatedTime 	= false;
+		m_AnalyticsStatsEnabled = true;
 		m_ID 					= eModifiers.MDF_HEATBUFFER;
 		m_TickIntervalInactive 	= 1;
 		m_TickIntervalActive 	= DEFAULT_TICK_TIME_ACTIVE;

@@ -78,6 +78,12 @@ class ServerBrowserDetailsContainer extends ScriptedWidgetEventHandler
 
 	void SetDetails(GetServersResultRow serverInfo, bool online = false)
 	{
+		if (!online)
+		{
+			ClearDetails();
+			return;
+		}
+
 		if (serverInfo)
 		{
 			SetName(serverInfo.m_Name);
@@ -121,7 +127,18 @@ class ServerBrowserDetailsContainer extends ScriptedWidgetEventHandler
 		
 		//! Map image container and handling is hidden/disabled for now
 		m_DetailsContainerRight.Show(false);
-		//SetServerMap(online);
+		//SetServerMap();
+	}
+	
+	void ClearDetails()
+	{
+		m_ServerNameText.SetText("#STR_server_browser_details_no_server_selected");
+		m_ServerTypeResult.SetText("-");
+		m_ServerModeResult.SetText("-");
+		m_ServerIP.SetText("-");
+		m_TimeIcon.Show(false);
+		m_TimeAccelerationResult.Show(true);
+		m_TimeAccelerationResult.SetText("-");
 	}
 	
 	protected void SetName(string name)
@@ -278,19 +295,11 @@ class ServerBrowserDetailsContainer extends ScriptedWidgetEventHandler
 		m_ServerDesc.Update();
 	}
 	
-	protected void SetServerMap(GetServersResultRow serverInfo, bool online = false)
+	protected void SetServerMap(GetServersResultRow serverInfo)
 	{
-		if (online)
-		{
-			string mapImagePath = ServerBrowserHelperFunctions.GetServerMapImagePath(serverInfo.m_MapNameToRun);			
-			m_MapImage.LoadImageFile(0, mapImagePath);
-			m_DetailsContainerRight.Show(true);
-		}
-		else
-		{
-			// Hide map image area
-			m_DetailsContainerRight.Show(false);
-		}
+		string mapImagePath = ServerBrowserHelperFunctions.GetServerMapImagePath(serverInfo.m_MapNameToRun);			
+		m_MapImage.LoadImageFile(0, mapImagePath);
+		m_DetailsContainerRight.Show(true);
 	}
 	
 	void Focus()

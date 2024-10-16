@@ -102,6 +102,12 @@ class ActionPushCar : ActionPushObject
 	{
 		return vector.Dot(target.GetDirection(), player.GetDirection());
 	}
+	
+	//! DEPRECATED
+	private CarScript GetCar(ActionTarget target)
+	{
+		return CarScript.Cast(GetPushObject(target));
+	}
 }
 
 // deprecated

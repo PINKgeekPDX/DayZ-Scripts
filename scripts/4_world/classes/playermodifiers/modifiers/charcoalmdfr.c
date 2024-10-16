@@ -6,8 +6,9 @@ class CharcoalMdfr: ModifierBase
 	
 	override void Init()
 	{
-		m_TrackActivatedTime = true;
-		m_IsPersistent = true;
+		m_TrackActivatedTime 	= true;
+		m_AnalyticsStatsEnabled = true;
+		m_IsPersistent 			= true;
 		m_ID 					= eModifiers.MDF_CHARCOAL;
 		m_TickIntervalInactive 	= DEFAULT_TICK_TIME_INACTIVE;
 		m_TickIntervalActive 	= 3;

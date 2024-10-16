@@ -301,7 +301,6 @@ class PlayerBase extends ManBase
 	//! invokers	
 	protected ref ScriptInvoker		m_OnUnconsciousStart;
 	protected ref ScriptInvoker		m_OnUnconsciousStop;
-	protected ref ScriptInvoker		m_OnDeathStart;
 	
 	void PlayerBase()
 	{	
@@ -500,6 +499,7 @@ class PlayerBase extends ManBase
 		m_BleedingSourcesUp.Insert("Pelvis");
 		m_BleedingSourcesUp.Insert("Neck");
 		
+		RegisterNetSyncVariableInt("m_PersistentFlags", 0, 1<<(EnumTools.GetEnumSize(PersistentFlag) + 1));
 		RegisterNetSyncVariableInt("m_LifeSpanState", LifeSpanState.BEARD_NONE, LifeSpanState.COUNT);
 		RegisterNetSyncVariableInt("m_BloodType", 0, 128);
 		RegisterNetSyncVariableInt("m_ShockSimplified",0, SIMPLIFIED_SHOCK_CAP);
@@ -560,14 +560,6 @@ class PlayerBase extends ManBase
 			m_OnUnconsciousStop = new ScriptInvoker();
 
 		return m_OnUnconsciousStop;
-	}
-
-	ScriptInvoker GetOnDeathStart()
-	{
-		if (!m_OnDeathStart)
-			m_OnDeathStart = new ScriptInvoker();
-
-		return m_OnDeathStart;
 	}
 
 	void AddMedicalDrugsInUse(EMedicalDrugsType drugType)
@@ -1056,9 +1048,6 @@ class PlayerBase extends ManBase
 		
 		if (GetBleedingManagerServer()) 
 			delete GetBleedingManagerServer();
-		
-		if (GetModifiersManager())
-			GetModifiersManager().DeactivateAllModifiers();
 
 		// kill character in database
 		if (GetHive())
@@ -1920,7 +1909,7 @@ class PlayerBase extends ManBase
 	
 	void OnRestrainStartedChangeClient()
 	{
-		if (m_IsRestrainStarted)
+		if (m_IsRestrainStarted && IsControlledPlayer())
 		{
 			if (GetGame().GetUIManager().IsMenuOpen(MENU_RADIAL_QUICKBAR))
 				GetGame().GetUIManager().FindMenu(MENU_RADIAL_QUICKBAR).Close();
@@ -1931,7 +1920,7 @@ class PlayerBase extends ManBase
 	
 	void OnRestrainChangeClient()
 	{
-		if (m_IsRestrained)
+		if (m_IsRestrained && IsControlledPlayer())
 		{
 			if (GetGame().GetUIManager().IsMenuOpen(MENU_RADIAL_QUICKBAR))
 				GetGame().GetUIManager().FindMenu(MENU_RADIAL_QUICKBAR).Close();
@@ -2292,7 +2281,7 @@ class PlayerBase extends ManBase
 				m_Hud.UpdateBloodName();
 				PPERequesterBank.GetRequester(PPERequester_DeathDarkening).Stop();
 				PPERequesterBank.GetRequester(PPERequester_ShockHitReaction).Stop();
-				PPERequesterBank.GetRequester(PPERequester_UnconEffects).Stop(); //TODO - stop en mass...check if effects do not terminate (spawning inside of contaminated area)?!
+				PPERequesterBank.GetRequester(PPERequester_UnconEffects).Stop();
 				GetGame().GetUIManager().CloseAll();
 				GetGame().GetMission().SetPlayerRespawning(false);
 				GetGame().GetMission().OnPlayerRespawned(this);
@@ -2864,6 +2853,8 @@ class PlayerBase extends ManBase
 		// lower implement 
 		super.CommandHandler(pDt,pCurrentCommandID,pCurrentCommandFinished);
 
+		vector playerPosition = PhysicsGetPositionWS();
+
 		HumanInputController hic = GetInputController();
 		
 		CheckZeroSoundEvent();
@@ -3019,7 +3010,7 @@ class PlayerBase extends ManBase
 						//! TODO: rework vehicle command Knockout back to force player prone after they have exited the vehicle
 						m_JumpClimb.CheckAndFinishJump();
 						StartCommand_Unconscious(0);
-						SetFallYDiff(GetPosition()[1]);
+						SetFallYDiff(playerPosition[1]);
 					}
 				}
 				//! When the player is waking up
@@ -3951,8 +3942,7 @@ class PlayerBase extends ManBase
 		GetWeaponManager().DelayedRefreshAnimationState(10);
 		RequestHandAnimationStateRefresh();
 		
-		if (m_OnDeathStart)
-			m_OnDeathStart.Invoke(this);
+		super.OnCommandDeathStart();
 	}
 	
 	override void OnJumpStart()
@@ -5582,8 +5572,7 @@ class PlayerBase extends ManBase
 		super.OnGameplayDataHandlerSync();
 		
 		UpdateLighting();
-		//Print("setting respawn to " + CfgGameplayHandler.GetDisableRespawnDialog());
-		GetGame().GetMission().SetRespawnModeClient(CfgGameplayHandler.GetDisableRespawnDialog());//TODO: maybe move to mission/game ?
+		GetGame().GetMission().SetRespawnModeClient(CfgGameplayHandler.GetDisableRespawnDialog());
 		SetHitPPEEnabled(CfgGameplayHandler.GetHitIndicationPPEEnabled());
 	}
 	
@@ -6267,7 +6256,7 @@ class PlayerBase extends ManBase
 	*/
 	
 	
-	EntityAI CreateInInventory(string item_name, string cargo_type = "", bool full_quantity = false) // TODO: Create item in cargo
+	EntityAI CreateInInventory(string item_name, string cargo_type = "", bool full_quantity = false)
 	{
 		InventoryLocation inv_loc = new InventoryLocation;
 		if (GetInventory().FindFirstFreeLocationForNewEntity(item_name, FindInventoryLocationType.ANY, inv_loc))
@@ -6906,7 +6895,7 @@ class PlayerBase extends ManBase
 					}
 				}
 			}
-			//Check for broken leg value
+			//Load persistent flags value
 			if (version >= 125 && (!ctx.Read(m_PersistentFlags)))
 			{
 				Print("---- failed to load Persistent Flags, read fail  ----");
@@ -6956,6 +6945,16 @@ class PlayerBase extends ManBase
 		
 		if (GetPlayerStats())
 			GetPlayerStats().OnAfterStoreLoad();
+		
+		PlayerRestrictedAreaInstance pra;
+		vector currentPos = GetPosition();
+		if (g_Game.GetGameState() != DayZGameState.MAIN_MENU && CfgPlayerRestrictedAreaHandler.IsInitialized() && CfgPlayerRestrictedAreaHandler.IsPointInPlayerRestrictedArea(currentPos,pra))
+		{
+			//vector safePos = pra.GetClosestSafePos3D(currentPos);
+			vector safePos = pra.GetRandomSafePos3D(currentPos);
+			if (MiscGameplayFunctions.TeleportPlayerToSafeLocation3D(this,safePos) && m_AdminLog)
+				m_AdminLog.PlayerTeleportedLog(this,currentPos,safePos,"Spawning in Player Restricted Area: " + pra.areaName);
+		}
 	}
 
 	void OnStoreSaveLifespan(ParamsWriteContext ctx)
@@ -7051,7 +7050,7 @@ class PlayerBase extends ManBase
 		
 		//construction action data
 		
-		ResetConstructionActionData();	
+		ResetConstructionActionData();
 	}
 	
 	void OnDisconnect()
@@ -7392,11 +7391,9 @@ class PlayerBase extends ManBase
 		HumanCommandVehicle vehCmd = GetCommand_Vehicle();
 		if (vehCmd)
 		{
-			CarScript car = CarScript.Cast(vehCmd.GetTransport());
-			if (car)
-			{
-				car.FixEntity();
-			}
+			Transport transport = vehCmd.GetTransport();
+			if (transport)
+				transport.FixEntity();
 		}
 		#endif
 	}
@@ -8770,7 +8767,7 @@ class PlayerBase extends ManBase
 			return;
 		}
 		
-		if (m_ActiveNVTypes.Find(type) == -1) //TODO - set instead?
+		if (m_ActiveNVTypes.Find(type) == -1)
 			m_ActiveNVTypes.Insert(type);
 	}
 	
@@ -8785,7 +8782,7 @@ class PlayerBase extends ManBase
 			return;
 		}
 		
-		if (m_ActiveNVTypes.Find(type) != -1) //TODO - set instead?
+		if (m_ActiveNVTypes.Find(type) != -1)
 			m_ActiveNVTypes.RemoveItem(type);
 	}
 	

@@ -6,7 +6,7 @@ class DrowningMdfr: ModifierBase
 	
 	override void Init()
 	{
-		m_TrackActivatedTime = false;
+		m_TrackActivatedTime 	= false;
 		m_ID 					= eModifiers.MDF_DROWNING;
 		m_TickIntervalInactive 	= DEFAULT_TICK_TIME_INACTIVE;
 		m_TickIntervalActive 	= TICK_FREQUENCY;

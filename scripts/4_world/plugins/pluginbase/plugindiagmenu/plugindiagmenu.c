@@ -285,6 +285,8 @@ class PluginDiagMenu : PluginBase
 				DiagMenu.RegisterBool(DiagMenuIDs.MISC_CONNECTION_STATS, "lalt+4", "Show Connection Stats", DiagMenuIDs.MISC_MENU);
 				DiagMenu.RegisterBool(DiagMenuIDs.MISC_PLAYER_SYMPTOMS_SHOW, "", "Show States", DiagMenuIDs.MISC_MENU);
 				DiagMenu.RegisterRange(DiagMenuIDs.MISC_PLAYER_SYMPTOMS_TOGGLE_HMP, "", "Set HMP symptom", DiagMenuIDs.MISC_MENU, "-1, 1, -1, 1");
+				DiagMenu.RegisterBool(DiagMenuIDs.MISC_SHOW_PRA_ALL, "lalt+n", "Show PRA - ALL", DiagMenuIDs.MISC_MENU);
+				DiagMenu.RegisterBool(DiagMenuIDs.MISC_PRA_DETECT, "lalt+m", "PRA - detect", DiagMenuIDs.MISC_MENU);
 				DiagMenu.RegisterBool(DiagMenuIDs.MISC_INPUT_DEVICE_DISCONNECT_DBG, "", "InputDevice states", DiagMenuIDs.MISC_MENU);
 				DiagMenu.RegisterBool(DiagMenuIDs.MISC_DEBUG_MONITOR, "", "Debug Monitor", DiagMenuIDs.MISC_MENU);
 				DiagMenu.RegisterRange(DiagMenuIDs.MISC_FORCE_HINT_INDEX, "", "Force Hint Index", DiagMenuIDs.MISC_MENU, "-1, 512, -1, 1");

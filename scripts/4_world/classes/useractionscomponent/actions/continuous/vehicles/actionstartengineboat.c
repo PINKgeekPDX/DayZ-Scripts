@@ -29,14 +29,10 @@ class ActionStartEngineBoat : ActionContinuousBase
 		if (!vehCommand)
 			return false;
 		
-		Transport trans = vehCommand.GetTransport();
-		if (!trans)
-			return false;
-		
-		Boat boat = Boat.Cast(trans);
+		BoatScript boat = BoatScript.Cast(vehCommand.GetTransport());
 		if (boat && !boat.EngineIsOn())
 		{
-			if (boat.GetHealthLevel("Engine") >= GameConstants.STATE_RUINED)
+			if (!boat.CheckOperationalState())
 				return false;
 			
 			return boat.CrewMemberIndex(player) == DayZPlayerConstants.VEHICLESEAT_DRIVER);

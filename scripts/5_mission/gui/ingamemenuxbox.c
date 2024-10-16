@@ -97,7 +97,9 @@ class InGameMenuXbox extends UIScriptedMenu
 		if (player)
 		{
 			m_PlayerAlive = player.GetPlayerState() == EPlayerStates.ALIVE;
-
+			if (!m_PlayerAlive)
+				m_BackAvailable = false;
+			
 			player.GetOnUnconsciousStart().Insert(UpdateGUI);
 			player.GetOnUnconsciousStart().Insert(UpdateMenuFocus);
 			player.GetOnUnconsciousStop().Insert(UpdateGUI);
@@ -428,6 +430,7 @@ class InGameMenuXbox extends UIScriptedMenu
 		else
 		{
 			m_RestartButton.Show(false);
+			m_BackAvailable = false;
 		}
 		
 		m_ContinueButton.Show(m_PlayerAlive);

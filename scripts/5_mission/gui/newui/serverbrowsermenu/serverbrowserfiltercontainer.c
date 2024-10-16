@@ -37,8 +37,8 @@ class ServerBrowserFilterContainer extends ScriptedWidgetEventHandler
 		array<string> sort_options = {"#server_browser_column_host A-Z", "#server_browser_column_host Z-A", "#players_title >", "#players_title <"};
 		array<string> ping_options = {"#server_browser_disabled", "<30", "<50", "<100", "<200", "<300", "<500"};
 		array<string> two_options = {"#server_browser_disabled", "#server_browser_show"};
-		array<string> map_options = {"#server_browser_disabled", "Chernarus", "Livonia", "Sakhal"};
-		
+		array<string> map_options = LoadMapFilterOptions();
+
 		m_SearchByName = EditBoxWidget.Cast(root.FindAnyWidget("search_name_setting_option"));
 		m_RefreshList = ButtonWidget.Cast(root.GetParent().FindAnyWidget("refresh_list_button"));
 		
@@ -49,6 +49,7 @@ class ServerBrowserFilterContainer extends ScriptedWidgetEventHandler
 		#else
 		m_FavoritedFilter = new OptionSelector(root.FindAnyWidget("favorites_setting_option"), 0, this, false);
 		#endif
+
 		m_MapFilter	= new OptionSelectorMultistate(root.FindAnyWidget("map_setting_option"), 0, this, false, map_options);
 		
 		m_DLCFilter	= new OptionSelector(root.FindAnyWidget("dlc_setting_option"), 0, this, false);
@@ -98,6 +99,17 @@ class ServerBrowserFilterContainer extends ScriptedWidgetEventHandler
 			#endif
 		#endif
 		LoadFilters();
+	}
+	
+	protected array<string> LoadMapFilterOptions()
+	{
+		array<string> mapOptions = {"#server_browser_disabled"};
+		for (int i = ServerBrowserHelperFunctions.GetInstance().INTERNAL_MAP_NAMES.Count() - 1; i >= 0; i--)
+		{
+			mapOptions.Insert(ServerBrowserHelperFunctions.GetInstance().INTERNAL_MAP_NAMES.GetElement(i));
+		}
+		
+		return mapOptions;
 	}
 	
 	void OnFilterChanged()

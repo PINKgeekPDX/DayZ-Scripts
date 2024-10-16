@@ -125,6 +125,11 @@ class Liquid
 			return false;
 		}
 		
+		if (source_ent.GetIsFrozen())
+		{
+			return false;
+		}
+		
 		float source_quantity = source_ent.GetQuantity();
 		if (source_quantity <= 0)
 		{

@@ -62,8 +62,8 @@ class DynamicMusicPlayerRegistry
 	private void RegisterTimeSettings()
 	{
 		DynamicMusicPlayerSettings settings = new DynamicMusicPlayerSettings();
-		settings.m_MinWaitTimeSeconds = 480.0; //480 = 8 min
-		settings.m_MaxWaitTimeSeconds = 720.0; //720 = 12 min
+		settings.m_MinWaitTimeSeconds = 360.0; //360 = 6 min
+		settings.m_MaxWaitTimeSeconds = 600.0; //600 = 10 min
 		
 		m_SettingsByCategory[EDynamicMusicPlayerCategory.TIME] = settings;
 	}
@@ -71,8 +71,8 @@ class DynamicMusicPlayerRegistry
 	private void RegisterLocationStaticSettings()
 	{
 		DynamicMusicPlayerSettings settings = new DynamicMusicPlayerSettings();
-		settings.m_MinWaitTimeSeconds = 480.0; //480 = 8 min
-		settings.m_MaxWaitTimeSeconds = 720.0; //720 = 12 min
+		settings.m_MinWaitTimeSeconds = 360.0; //360 = 6 min
+		settings.m_MaxWaitTimeSeconds = 600.0; //600 = 10 min
 
 		m_SettingsByCategory[EDynamicMusicPlayerCategory.LOCATION_STATIC] = settings;
 		
@@ -100,7 +100,7 @@ class DynamicMusicPlayerRegistry
 		RegisterTrackMenu("Music_Menu_SoundSet", true); 
 		RegisterTrackMenu("Music_Menu_2_SoundSet");
 		RegisterTrackMenu("Music_Menu_3_SoundSet");
-		//RegisterTrackMenu("Music_Menu_3_SoundSet");
+		RegisterTrackMenu("Music_Menu_4_SoundSet");
 	}
 //____________________________________________Day Time setup___________________________________________
 

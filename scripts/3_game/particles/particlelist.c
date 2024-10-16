@@ -67,6 +67,7 @@ class ParticleList
 	static const int COOKING_DRYING_START			= RegisterParticle("cooking_drying_start");
 	static const int COOKING_DRYING_DONE			= RegisterParticle("cooking_drying_done");
 	static const int COOKING_BURNING_DONE			= RegisterParticle("cooking_burning_done");
+	static const int ITEM_HOT_VAPOR					= RegisterParticle("item_hot_vapor");
 	
 	// TORCH
 	static const int TORCH_T3						= RegisterParticle("fire_small_torch_01");
@@ -133,6 +134,7 @@ class ParticleList
 	// ELECTRICITY	        
 	static const int POWER_GENERATOR_SMOKE			= RegisterParticle("smoke_small_generator_01");
 	static const int BARBED_WIRE_SPARKS				= RegisterParticle("electro_shortc2");
+	static const int LEVER_SPARKS					= RegisterParticle("electro_sparks");
 	static const int EASTER_EGG_ACTIVATE			= RegisterParticle("easter_egg_activate");
 
 	// PLAYER

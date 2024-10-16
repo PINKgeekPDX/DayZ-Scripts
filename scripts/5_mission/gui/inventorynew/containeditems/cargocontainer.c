@@ -737,7 +737,21 @@ class CargoContainer extends Container
 		{
 			GetFocusedIcon().SetActive( false );
 		}
-		m_FocusedItemPosition = ( ( m_Rows.Count() - 1 ) * ROWS_NUMBER_XBOX );
+		
+		int focusedIconCount = m_Icons.Count();
+		int columCount = m_Icons.Count() / ROWS_NUMBER_XBOX;
+		if (focusedIconCount > ROWS_NUMBER_XBOX)
+		{
+			int iconMax = columCount * ROWS_NUMBER_XBOX;
+			int diff = focusedIconCount - iconMax;
+			if (diff == 0)
+				diff = ROWS_NUMBER_XBOX;
+			m_FocusedItemPosition = focusedIconCount - diff;
+		}
+		else
+		{
+			m_FocusedItemPosition = 0;
+		}
 		UpdateSelection();
 	}
 	

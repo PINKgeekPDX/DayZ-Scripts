@@ -172,7 +172,12 @@ class MainMenuDlcHandlerBase extends ScriptedWidgetEventHandler
 		#ifdef PLATFORM_PS4
 			m_GamepadStoreImage = m_Root.FindAnyWidget("image_button_ps");
 			desc.SetText("#dlc_open_store_PS");
-		#else
+		#endif
+		#ifdef PLATFORM_XBOX
+			m_GamepadStoreImage = m_Root.FindAnyWidget("image_button_xbox");
+			desc.SetText("#dlc_open_store_Xbox");
+		#endif
+		#ifdef PLATFORM_PC
 			m_GamepadStoreImage = m_Root.FindAnyWidget("image_button_xbox");
 			desc.SetText("#dlc_open_store");
 		#endif

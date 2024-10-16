@@ -775,7 +775,6 @@ class MiscGameplayFunctions
 		return false;
 	}
 	
-	//TODO
 	static string SanitizeString(string input)
 	{
 		int max_length = 512;
@@ -1599,6 +1598,10 @@ class MiscGameplayFunctions
 				player.SetPosition( closest_safe_pos );//...so lets teleport them somewhere safe
 				//DeveloperTeleport.SetPlayerPosition(player, closest_safe_pos);
 				GetGame().RPCSingleParam(player, ERPCs.RPC_WARNING_TELEPORT, null, true, player.GetIdentity());
+				
+				PluginAdminLog adminLog = PluginAdminLog.Cast(GetPlugin(PluginAdminLog));
+				if (adminLog)
+					adminLog.PlayerTeleportedLog(player,player_pos,closest_safe_pos,"Unwillingly spawning in contaminated area.");
 			}
 			
 			player.SetPersistentFlag(PersistentFlag.AREA_PRESENCE, false);
@@ -1624,6 +1627,21 @@ class MiscGameplayFunctions
 			}
 		}
 		return closest_pos;
+	}
+	
+	//! 'stupider' teleport method, does not touch flag management. Applies Y from the position as well!
+	static bool TeleportPlayerToSafeLocation3D(notnull PlayerBase player, vector safePos)
+	{
+		vector playerPos = player.GetPosition();
+		if (playerPos != safePos)
+		{
+			player.SetPosition(safePos);
+			GetGame().RPCSingleParam(player, ERPCs.RPC_WARNING_TELEPORT, null, true, player.GetIdentity());
+			
+			return true;
+		}
+		
+		return false;
 	}
 	
 	static void GenerateAINoiseAtPosition(vector position, float lifeTime, NoiseParams noiseParams)
@@ -1733,6 +1751,26 @@ class MiscGameplayFunctions
 			}
 		}
 	}
+	
+	static void DeleteAttachedChildrenByTypename(notnull EntityAI parent, array<typename> listOfTypenames)
+	{
+		if (listOfTypenames.Count() > 0)
+		{
+			Object child = Object.Cast(parent.GetChildren());
+			while (child)
+			{
+				Object childToRemove = child;
+				child = Object.Cast(child.GetSibling());
+	
+				if (childToRemove.IsAnyInherited(listOfTypenames))
+				{			
+					parent.RemoveChild(childToRemove, false);
+					childToRemove.Delete();
+				}
+			}
+		}
+	}
+	
 	//! Fills the provided array with all children entities in hierarchy of this entity
 	static void GetAttachedChildren(IEntity parent, array<IEntity> outputObjects)
 	{

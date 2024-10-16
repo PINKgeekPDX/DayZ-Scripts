@@ -86,7 +86,7 @@ class CatchingContextTrapsBase : CatchingContextBase
 		ItemBase ib;
 		if (Class.CastTo(ib,item))
 		{
-			//ret *= ib.GetBaitEffectivity(); //TODO: investigate further
+			//ret *= ib.GetBaitEffectivity(); //disconnected for the Time Being
 		}
 		
 		return ret;

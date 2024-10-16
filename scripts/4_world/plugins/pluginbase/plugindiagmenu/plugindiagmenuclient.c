@@ -137,6 +137,8 @@ class PluginDiagMenuClient : PluginDiagMenu
 		//---------------------------------------------------------------	
 		DiagMenu.BindCallback(DiagMenuIDs.MISC_FREEZE_ENTITY, CBMiscFreezeEntity);
 		DiagMenu.BindCallback(DiagMenuIDs.MISC_DEBUG_MONITOR, CBDebugMonitor);
+		DiagMenu.BindCallback(DiagMenuIDs.MISC_SHOW_PRA_ALL, CBPRADrawAll);
+		DiagMenu.BindCallback(DiagMenuIDs.MISC_PRA_DETECT, CBPRADetect);
 
 		//---------------------------------------------------------------
 		// LEVEL 2 - Script > Simulate script
@@ -841,6 +843,27 @@ class PluginDiagMenuClient : PluginDiagMenu
 			GetGame().GetMission().CreateDebugMonitor();
 		else
 			GetGame().GetMission().HideDebugMonitor();
+	}
+	
+	static void CBPRADrawAll(bool enabled, int id)
+	{
+		CfgPlayerRestrictedAreaHandler.DrawBoxesDebug(enabled);
+		CfgPlayerRestrictedAreaHandler.DrawPolygonLinesDebug(enabled);
+	}
+	
+	static void CBPRADetect(bool enabled, int id)
+	{
+		if (enabled)
+		{
+			DayZPlayer player = GetGame().GetPlayer();
+			PlayerRestrictedAreaInstance pra;
+			bool res = CfgPlayerRestrictedAreaHandler.IsPointInPlayerRestrictedArea(player.GetPosition(),pra);
+			if (res)
+				Print("player: " + player + " | at position: " + player.GetPosition() + " | intersects area: " + pra.areaName);
+			else
+				Print("player: " + player + " | at position: " + player.GetPosition() + " | is NOT in any PlayerRestrictedArea");
+		}
+		DiagMenu.SetValue(DiagMenuIDs.MISC_PRA_DETECT, false);
 	}
 	
 	//---------------------------------------------

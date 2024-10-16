@@ -864,7 +864,8 @@ class Hologram
 		vector right_close = m_Projection.CoordToParent( GetRightCloseProjectionVector() );
 		vector left_far = m_Projection.CoordToParent( GetLeftFarProjectionVector() );
 		vector right_far = m_Projection.CoordToParent( GetRightFarProjectionVector() );
-		bool surface_sea_water = IsSurfaceSea(left_close) || IsSurfaceSea(right_close) || IsSurfaceSea(left_far) || IsSurfaceSea(right_far);
+		float maxSea = g_Game.SurfaceGetSeaLevelMax() + 0.03;
+		bool belowMaxSea = left_close[1] < maxSea || right_close[1] < maxSea || left_far[1] < maxSea || right_far[1] < maxSea;
 		
 		#ifdef DIAG_DEVELOPER
 		// I'd rather duplicate this on internal than introduce (even) more raycasts than needed on retail..
@@ -872,8 +873,8 @@ class Hologram
 		float rc = g_Game.GetWaterDepth(right_close);
 		float lf = g_Game.GetWaterDepth(left_far);
 		float rf = g_Game.GetWaterDepth(right_far);
-		bool isTrue = (lc > 0 || rc > 0 || lf > 0 || rf > 0 || surface_sea_water);
-		DebugText("IsUnderwater: ", false, isTrue, " surface_sea_water: " + surface_sea_water + " | (all must be less than zero) | lc: " + lc + " | rc: " + rc + " | lf: " + lf + " | rf: " + rf);
+		bool isTrue = (lc > 0 || rc > 0 || lf > 0 || rf > 0 || belowMaxSea);
+		DebugText("IsUnderwater: ", false, isTrue, " belowMaxSea: " + belowMaxSea + " | (all must be less than zero) | lc: " + lc + " | rc: " + rc + " | lf: " + lf + " | rf: " + rf);
 		//DebugText("Corner Height: ", false, true, " lc: " + left_close[1] + " | rc: " + right_close[1] + " | lf: " + left_far[1] + " | rf: " + right_far[1]);
 		if (isTrue)
 		{
@@ -882,7 +883,7 @@ class Hologram
 		}
 		#endif
 		
-		return (surface_sea_water || g_Game.GetWaterDepth(left_close) > 0 || g_Game.GetWaterDepth(right_close) > 0 || g_Game.GetWaterDepth(left_far) > 0 || g_Game.GetWaterDepth(right_far) > 0);	
+		return (belowMaxSea || g_Game.GetWaterDepth(left_close) > 0 || g_Game.GetWaterDepth(right_close) > 0 || g_Game.GetWaterDepth(left_far) > 0 || g_Game.GetWaterDepth(right_far) > 0);	
 	}
 	
 	bool IsInTerrain()

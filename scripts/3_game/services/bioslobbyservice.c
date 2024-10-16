@@ -24,33 +24,37 @@ enum ESortOrder
 
 class ServerBrowserHelperFunctions
 {
+	static ref ServerBrowserHelperFunctions s_ServerBrowserHelperFunctions;
 	protected static const string CHERNARUS_MAP_IMAGE = ""; // placeholder image path
 	protected static const string LIVONIA_MAP_IMAGE = ""; // placeholder image path
 	protected static const string SAKHAL_MAP_IMAGE = ""; // placeholder image path
 	protected static const string LOWERCASE_ALPHABET = "abcdefghijklmnopqrstuvwxyz"; // used for temporary hotfix
+	static ref map<string, string> INTERNAL_MAP_NAMES = new map<string, string>;
+
+	void ServerBrowserHelperFunctions()
+	{
+		INTERNAL_MAP_NAMES.Insert("chernarusplus", "Chernarus");
+		INTERNAL_MAP_NAMES.Insert("enoch", "Livonia");
+		INTERNAL_MAP_NAMES.Insert("sakhal", "Sakhal");
+	}
 	
-	// Returns internal map name (mission world name) depending on given map display name.
+	// Use this function to add maps to the server browser map filter options
+	static void AddMapInfo(string mapName, string mapDisplayName)
+	{
+		string mdn;
+		if (!INTERNAL_MAP_NAMES.Find(mapName, mdn))
+			INTERNAL_MAP_NAMES.Insert(mapName, mapDisplayName);
+	}
+
+	// Returns internal map name (mission world name) depending on given map display name if it can be fetched from CfgWorlds config.
 	static string GetInternalMapName(string mapName)
 	{
-		string internalMapName;
-		string publicMapName = mapName;
-		publicMapName.ToLower();
-		
-		switch (publicMapName)
+		string internalMapName;	
+		foreach (string mn, string mdp: INTERNAL_MAP_NAMES)	
 		{
-			case "chernarus":
+			if (mdp == mapName)
 			{
-				internalMapName = "chernarusplus";
-				break;
-			}
-			case "livonia":
-			{
-				internalMapName = "enoch";
-				break;
-			}
-			case "sakhal":
-			{
-				internalMapName = "sakhal";
+				internalMapName = mn;
 				break;
 			}
 		}
@@ -61,50 +65,36 @@ class ServerBrowserHelperFunctions
 	// Returns map display name depending on given internal map name (mission world name).
 	static string GetMapDisplayName(string mapName)
 	{
-		string publicMapName = mapName;
+		string displayMapName;
 		string internalMapName = mapName;
-		bool internalMap = false;
 		internalMapName.ToLower();
 
-		switch (internalMapName)
+		foreach (string mn, string mdp: INTERNAL_MAP_NAMES)	
 		{
-			case "enoch":
+			if (mn == internalMapName)
 			{
-				publicMapName = "Livonia";
-				internalMap = true;
-				break;
-			}
-			case "chernarusplus":
-			{
-				publicMapName = "Chernarus";
-				internalMap = true;
-				break;
-			}
-			case "sakhal":
-			{
-				publicMapName = "Sakhal";
-				internalMap = true;
+				displayMapName = mdp;
 				break;
 			}
 		}
 		
-		// publicMapName should never be a empty string but just in case we check before altering the string
-		// also only alters the first character if the given map name is not a offical map
-		if (!internalMap && publicMapName != "")
+		if (displayMapName == "")
 		{
-			string fc = publicMapName[0];
+			displayMapName = mapName;
+			string fc = displayMapName[0];
 			if (fc != "")
 			{
-				if (LOWERCASE_ALPHABET.IndexOf(fc) > -1) // temporariy fix for VME until fixed internaly
+				// temporary fix for VME until fixed internaly
+				if (LOWERCASE_ALPHABET.IndexOf(fc) > -1)
 				{
 					fc.ToUpper();
 				}
 
-				publicMapName[0] = fc;
+				displayMapName[0] = fc;
 			}
 		}
 
-		return publicMapName;
+		return displayMapName;
 	}
 	
 	// Returns map image texture path depending on given internal map name (mission world name).
@@ -132,6 +122,14 @@ class ServerBrowserHelperFunctions
 		}
 		
 		return image;
+	}
+	
+	static ServerBrowserHelperFunctions GetInstance()
+	{
+		if (!s_ServerBrowserHelperFunctions)
+			s_ServerBrowserHelperFunctions = new ServerBrowserHelperFunctions;
+		
+		return s_ServerBrowserHelperFunctions;
 	}
 }
 

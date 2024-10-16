@@ -24,3 +24,8 @@ class Land_Ruin_HouseSmall1_NoIvy		: BuildingWithFireplace {};
 class Land_Ruin_HouseSmall2				: BuildingWithFireplace {};
 class Land_Ruin_HouseSmall2_NoIvy		: BuildingWithFireplace {};
 class Land_House_1W13_Dam				: BuildingWithFireplace {};
+
+//Sakhal
+class Land_Tenement_Small_Brick			: BuildingWithFireplace {};
+class Land_Tenement_Small_Brown			: BuildingWithFireplace {};
+class Land_Tenement_Small_Yellow		: BuildingWithFireplace {}; 	

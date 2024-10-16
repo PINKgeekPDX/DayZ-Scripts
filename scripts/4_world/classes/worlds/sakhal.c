@@ -1,15 +1,6 @@
 //#define WEATHER_DATA_LOGGING
-
 class SakhalData : WorldData
-{	
-	protected int m_SameWeatherCnt = 0;
-	protected int m_StepValue = 5;
-	protected int m_Chance = 50;
-
-	protected int m_ChoosenWeather = 1;
-	protected int m_LastWeather = 0;
-	//------------------------	
-		
+{
 	const float SPAWN_CHANCE_CHOLERA = 20;
 	const float COLD_AREA_TOOL_DMG_MODIF = 1.2;
 	
@@ -29,7 +20,7 @@ class SakhalData : WorldData
 	int startHour = 0;
 	int startMinute = 0;
 	int currentDay = 0;
-	int daystoRun = 10;
+	int daysToRun = 10;
 	bool dayInit = false;
 	#endif
 	//------------------------	
@@ -83,7 +74,9 @@ class SakhalData : WorldData
 			{
 				m_Weather.GetOvercast().Set(Math.RandomFloat(0,0.75),0,5); //forcing a random weather at a clean server start and an instant change for overcast
 				CalculateVolFog(m_Weather.GetSnowfall().GetActual(),m_Weather.GetWindSpeed(),0);
-			}			
+			}
+			
+			m_DefaultPlayerRestrictedAreas = {"pra/warheadstorage.json"};
 		}
 		
 		
@@ -180,7 +173,7 @@ class SakhalData : WorldData
 				//went something goes wrong choose some default random weather	
 				phmnValue = Math.RandomFloatInclusive( 0.2, 0.7 );
 				phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
-				phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );	
+				phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinLength, m_WeatherDefaultSettings.m_OvercastMaxLength );	
 			
 				//----				
 				//--
@@ -280,7 +273,7 @@ class SakhalData : WorldData
 					#endif
 					phmnValue = Math.RandomFloatInclusive( 0.07, 0.3 );
 					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
-					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
+					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinLength, m_WeatherDefaultSettings.m_OvercastMaxLength );
 				}
 
 				if ( m_ChoosenWeather == CLOUDY_WEATHER )
@@ -292,7 +285,7 @@ class SakhalData : WorldData
 
 					phmnValue = Math.RandomFloatInclusive( 0.3, 0.6 );
 					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
-					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
+					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinLength, m_WeatherDefaultSettings.m_OvercastMaxLength );
 				}
 			
 				if ( m_ChoosenWeather == WorldDataWeatherConstants.BAD_WEATHER )
@@ -301,7 +294,7 @@ class SakhalData : WorldData
 
 					phmnValue = Math.RandomFloatInclusive( 0.6, 1.0 );
 					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
-					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
+					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinLength, m_WeatherDefaultSettings.m_OvercastMaxLength );
 					
 					if ( m_IsSuddenChange )
 					{
@@ -315,7 +308,7 @@ class SakhalData : WorldData
 						if ( m_IsSuddenChange )
 						{
 							suddenThundersnowCount++;
-							if ( m_Chance < m_WeatherDefaultSettings.m_GlobalSuddenChangeChance )
+							if ( m_Chance < m_WeatherDefaultSettings.m_GlobalSuddenChance )
 							{
 								directSuddenChangeCount--;
 							}
@@ -359,7 +352,7 @@ class SakhalData : WorldData
 					
 				if ( testDay - startDay > currentDay && testHour - startHour >= 0 && testMinute - startMinute >= 0 )
 				{
-					FileHandle file = OpenFile("$profile:OvercastCounts" + (currentDay + 1) + ".log", FileMode.WRITE);
+					FileHandle file = OpenFile("$profile:OvercastCountsSakhal" + (currentDay + 1) + ".log", FileMode.WRITE);
 					FPrintln(file, "================================================================");
 					FPrintln(file," ================== Day " + (currentDay + 1) + " ================== ");
 					FPrintln(file, "================================================================");
@@ -373,7 +366,8 @@ class SakhalData : WorldData
 					FPrintln(file, "Clear Weather Count: " + clearWeatherCount);
 				
 					currentDay++;
-					if ( currentDay == daystoRun )
+					CloseFile(file);
+					if ( currentDay == daysToRun )
 					{
 						g_Game.RequestExit(IDC_MAIN_QUIT);
 					}
@@ -405,7 +399,7 @@ class SakhalData : WorldData
 				if ( actualOvercast <= m_WeatherDefaultSettings.m_SnowfallThreshold )
 				{
 					m_Weather.GetSnowfall().Set( 0.0, m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMin );
-					CalculateVolFog(phmnValue, m_Weather.GetWindMagnitude().GetForecast(), phmnTime);
+					CalculateVolFog(0.0, m_Weather.GetWindMagnitude().GetForecast(), phmnTime);
 					
 					Debug.WeatherLog(string.Format("Sakhal::Weather::Snow::ForceEnd:: (%1) %2 -> 0", g_Game.GetDayTime(), actual));
 					return true;
@@ -414,8 +408,8 @@ class SakhalData : WorldData
 				if ( actualOvercast > m_WeatherDefaultSettings.m_ThundersnowThreshold )
 				{
 					phmnValue = Math.RandomFloatInclusive( 0.8, 1.0 );
-					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin * 0.5, m_WeatherDefaultSettings.m_SnowfallTimeMax * 0.5 );
-					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin * 3, m_WeatherDefaultSettings.m_SnowfallTimeMax * 3 );
+					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax ) * 0.5;
+					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax ) * 1.2;
 
 					m_Weather.GetSnowfall().Set( phmnValue, phmnTime, phmnLength );
 					
@@ -427,8 +421,8 @@ class SakhalData : WorldData
 				if ( actualOvercast == m_Weather.GetOvercast().GetForecast() && m_Weather.GetSnowfall().GetActual() >= 0.8 && m_Weather.GetWindSpeed() >= 10 ) //if overcast is not changing and there was high snowfall
 				{
 					phmnValue = Math.RandomFloatInclusive( 0.2, 0.4 );
-					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin * 0.5, m_WeatherDefaultSettings.m_SnowfallTimeMax * 0.5 );
-					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin * 2, m_WeatherDefaultSettings.m_SnowfallTimeMax * 2.5 );
+					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax ) * 0.5;
+					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax ) * 1.2;
 					
 					m_Weather.GetWindMagnitude().Set(m_Weather.GetWindMagnitude().GetActual() * 0.2, phmnTime , phmnLength); // next change will be happen in phenomenon change and reset the wind speed
 					m_Weather.GetSnowfall().Set( phmnValue, phmnTime, phmnLength );
@@ -440,77 +434,89 @@ class SakhalData : WorldData
 
 				if ( actualOvercast < 0.6 ) //snowfall treshold to 0.6 overcast, snowfall in this bracket does not increase wetness
 				{
-					if ( m_Chance < 20 )
+					if ( m_Chance < 40 )
 					{
-						phmnValue = Math.RandomFloatInclusive( 0.02, 0.3 );
+						phmnValue = Math.RandomFloatInclusive( 0.02, 0.4 );
 						phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
-						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
-					}
-					if ( m_Chance < 60 )
-					{
-						phmnValue = Math.RandomFloat( 0.2, 0.5 ); //0.5 snowfall starts to increase wetness
-						phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
-						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
+						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax ) * 1.2;
 					}
 					else //also have the chance to not have snow at all
 					{
 						phmnValue = 0;
 						phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
-						phmnLength = m_WeatherDefaultSettings.m_SnowfallTimeMax * 2.5;	
+						phmnLength = Math.RandomIntInclusive(m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax) * 2;
 					}			
 				}
 				else if ( actualOvercast < 0.75 ) //0.6 to 0.75 overcast
 				{
-					if ( m_Chance < 40 )
+					if ( m_Chance < 30 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.5, 0.8 );
 						phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
-						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
+						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax );
 					}
-					else if ( m_Chance < 70 )
+					else if ( m_Chance < 60 )
 					{
 						phmnValue = Math.RandomFloat( 0.3, 0.5 ); //0.5 snowfall starts to increase wetness
 						phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
-						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
+						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax );
 					}
-					else if ( m_Chance < 80 )
+					else if ( m_Chance < 75 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.02, 0.3 );
 						phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
-						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
+						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax );
 					}
 					else //also have the chance to not have snow at all
 					{
-						phmnValue = 0;
-						phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
-						phmnLength = m_WeatherDefaultSettings.m_SnowfallTimeMax * 1.5;
+						if ( m_IsSuddenChange )
+						{
+							phmnValue = Math.RandomFloat( 0.3, 0.5 ); //0.5 snowfall starts to increase wetness
+							phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
+							phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax );							
+						}
+						else
+						{
+							phmnValue = 0;
+							phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
+							phmnLength = Math.RandomIntInclusive(m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax) * 1.2;
+						}
 					}
 				}
 				else //0.75 to thunderstorm threshold overcast
 				{
-					if ( m_Chance < 40 )
+					if ( m_Chance < 35 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.7, 1.0 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
-						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
+						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax );
 					}
-					else if ( m_Chance < 80 )
+					else if ( m_Chance < 75 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.5, 0.7 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
-						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
+						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax ) ;
 					}
-					else if ( m_Chance < 90 )
+					else if ( m_Chance < 85 )
 					{
 						phmnValue = Math.RandomFloat( 0.2, 0.5 ); //0.5 snowfall starts to increase wetness
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
-						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
+						phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax );
 					}
-					else //also have the chance to not have snow at all
+					else
 					{
-						phmnValue = 0;
-						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
-						phmnLength = m_WeatherDefaultSettings.m_SnowfallTimeMax;
+						if ( m_IsSuddenChange )
+						{
+							phmnValue = Math.RandomFloat( 0.5, 0.7 ); //0.5 snowfall starts to increase wetness
+							phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
+							phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax );							
+						}
+						else
+						{
+							phmnValue = Math.RandomFloat( 0.02, 0.1 );
+							phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_SnowfallTimeMin, m_WeatherDefaultSettings.m_SnowfallTimeMax );
+							phmnLength = Math.RandomIntInclusive(m_WeatherDefaultSettings.m_SnowfallLengthMin, m_WeatherDefaultSettings.m_SnowfallLengthMax) * 1.2;
+						}
 					}
 				}
 		
@@ -650,7 +656,7 @@ class SakhalData : WorldData
 	
 	protected override void CalculateVolFog(float lerpValue, float windMagnitude, float changeTime)// in sakhal volfog supports snowfall effect
 	{				
-		float maxVolFogDistanceDensity = Math.Lerp( 0, 0.35, lerpValue );
+		float maxVolFogDistanceDensity = Math.Lerp( 0, 0.35, Easing.EaseInQuart(lerpValue) );
 		float minVolFogDistanceDensity = Math.Lerp(0.001, 0.01, m_Weather.GetOvercast().GetActual());
 		
 		if (minVolFogDistanceDensity > maxVolFogDistanceDensity)

@@ -39,6 +39,12 @@ class ModsMenuDetailedEntry extends ScriptedWidgetEventHandler
 		m_Version = TextWidget.Cast(m_Root.FindAnyWidget("Version"));
 		m_ActionWebsite = RichTextWidget.Cast(m_Root.FindAnyWidget("Link"));
 		m_ActionPurchase = RichTextWidget.Cast(m_Root.FindAnyWidget("Purchase"));
+		#ifdef PLATFORM_PS4
+		m_ActionPurchase.SetText("#mod_detail_info_store_PS");
+		#endif
+		#ifdef PLATFORM_XBOX
+		m_ActionPurchase.SetText("#mod_detail_info_store_Xbox");
+		#endif
 		
 		m_Description = RichTextWidget.Cast(m_Root.FindAnyWidget("Description"));
 		
@@ -172,40 +178,36 @@ class ModsMenuDetailedEntry extends ScriptedWidgetEventHandler
 	
 	override bool OnMouseButtonUp(Widget w, int x, int y, int button)
 	{
-		if( w == m_IconCollapse )
+		if (w == m_IconCollapse)
 		{
-			m_ParentMenu.Select( m_Data, !m_IsOpen );
+			m_ParentMenu.Select(m_Data, !m_IsOpen);
 			return true;
 		}
-		else if( w == m_ActionWebsite )
+		else if (w == m_ActionWebsite)
 		{
-			GetGame().OpenURL( m_Data.GetAction() );
+			GetGame().OpenURL(m_Data.GetAction());
 		}
-		else if( w == m_ActionPurchase )
+		else if (w == m_ActionPurchase)
 		{
 			m_Data.GoToStore();
 		}
+
 		return false;
 	}
 	
 	override bool OnMouseEnter(Widget w, int x, int y)
 	{
-		if( w == m_ActionWebsite )
-		{
-			m_ActionWebsite.SetBold( true );
-			m_ActionWebsite.SetText( "#mod_detail_info_website" );
-		}
+		if (w == m_ActionWebsite)
+			m_ActionWebsite.SetBold(true);
 		
-		if( w == m_ActionPurchase )
-		{
-			m_ActionPurchase.SetBold( true );
-			m_ActionPurchase.SetText( "#mod_detail_info_store" );
-		}
+		if (w == m_ActionPurchase)
+			m_ActionPurchase.SetBold(true);
 		
-		if( w == m_Root )
+		if (w == m_Root)
 		{
-			if( m_Data.GetTooltip() != "" )
-				m_ParentMenu.PrepareTooltip( m_Data );
+			if (m_Data.GetTooltip() != "")
+				m_ParentMenu.PrepareTooltip(m_Data);
+
 			return true;
 		}
 		
@@ -214,19 +216,13 @@ class ModsMenuDetailedEntry extends ScriptedWidgetEventHandler
 	
 	override bool OnMouseLeave(Widget w, Widget enterW, int x, int y)
 	{
-		if( w == m_ActionWebsite )
-		{
-			m_ActionWebsite.SetBold( false );
-			m_ActionWebsite.SetText( "#mod_detail_info_website" );
-		}
+		if (w == m_ActionWebsite)
+			m_ActionWebsite.SetBold(false);
 		
-		if( w == m_ActionPurchase )
-		{
+		if (w == m_ActionPurchase)
 			m_ActionPurchase.SetBold( false );
-			m_ActionPurchase.SetText( "#mod_detail_info_store" );
-		}
 		
-		if( enterW != m_Root )
+		if (enterW != m_Root)
 		{
 			m_ParentMenu.HideTooltip();
 			return true;

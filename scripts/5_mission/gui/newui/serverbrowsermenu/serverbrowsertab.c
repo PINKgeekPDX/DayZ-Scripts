@@ -122,13 +122,7 @@ class ServerBrowserTab extends ScriptedWidgetEventHandler
 	{
 		return m_LoadingFinished;
 	}
-	
-	// Why we override this here when it is not used?
-	override bool OnClick( Widget w, int x, int y, int button )
-	{
-		
-	}
-	
+
 	void OnDLCChange(EDLCId dlcId)
 	{
 		switch (dlcId)
@@ -199,8 +193,10 @@ class ServerBrowserTab extends ScriptedWidgetEventHandler
 	
 	void Focus()
 	{
-		if (m_EntryWidgets.Contains(m_CurrentSelectedServer))
+		if (m_SelectedServer && m_EntryWidgets.Contains(m_CurrentSelectedServer))
 		{
+			UpdateServerList();
+			
 			m_EntryWidgets.Get(m_CurrentSelectedServer).Focus();
 			ScrollToEntry(m_EntryWidgets.Get(m_CurrentSelectedServer));
 		}
@@ -451,6 +447,8 @@ class ServerBrowserTab extends ScriptedWidgetEventHandler
 		m_TotalServers = 0;
 		m_TotalLoadedServers = 0;
 		m_CurrentLoadedPage = 0;
+
+		m_Menu.DeselectCurrentServer();
 		
 		m_EntryWidgets.Clear();
 		
@@ -509,6 +507,8 @@ class ServerBrowserTab extends ScriptedWidgetEventHandler
 		
 		m_SelectedServer = server;
 		
+		m_CurrentSelectedServer = m_SelectedServer.GetServerData().m_Id;
+		
 		if (!m_Menu)
 			return;
 		
@@ -518,6 +518,8 @@ class ServerBrowserTab extends ScriptedWidgetEventHandler
 	void OnLoadServersAsyncPC(ref GetServersResult result_list, EBiosError error, string response);
 	
 	void OnLoadServersAsyncConsole(GetServersResult result_list, EBiosError error, string response);
+	
+	void UpdateServerList();
 
 	void SetSort( ESortType type, ESortOrder order )
 	{

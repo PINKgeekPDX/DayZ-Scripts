@@ -9,7 +9,9 @@ enum ESoundEventType
 enum EReplaceSoundEventID
 {
 	DIG_PRIMARY = 1,
-	DIG_SECONDARY
+	DIG_SECONDARY,
+	CLEANHANDS_PRIMARY,
+	CLEANHANDS_SECONDARY
 }
 
 // Main purpose is to intercept animation system based sound event calls and replace them with different ones based on context 
@@ -26,6 +28,8 @@ class ReplaceSoundEventHandler
 		
 		RegisterEvent(new DigPrimarySoundEvent());
 		RegisterEvent(new DigSecondarySoundEvent());
+		RegisterEvent(new CleanHandsPrimarySoundEvent());
+		RegisterEvent(new CleanHandsSecondarySoundEvent());
 	}
 	
 	// Inserts sound replace event to array of event maps, creates new event map if first sound of an event type is being registered

@@ -169,6 +169,8 @@ class Environment
 			InventorySlots.BODY,
 			InventorySlots.BACK,
 			InventorySlots.VEST,
+			InventorySlots.MELEE,
+			InventorySlots.SHOULDER
 		};
 		
 		m_FeetParts				= new array<int>();
@@ -379,7 +381,8 @@ class Environment
 			return;
 		}
 		
-		g_Game.SurfaceUnderObjectCorrectedLiquid(m_Player, surfType, liquidType);
+		string impact;
+		g_Game.SurfaceUnderObjectExCorrectedLiquid(m_Player, surfType, impact, liquidType);
 		
 		switch (liquidType)
 		{
@@ -457,13 +460,13 @@ class Environment
 		}
 
 		// incorporate temperature from temperature sources (buffer)
-		if (Math.AbsFloat(m_UTSAverageTemperature) > 0.0 && m_UTSAverageTemperature > temperature)
+		if (Math.AbsFloat(m_UTSAverageTemperature) > 0.0)
 			temperature = m_UTSAverageTemperature;
 		
 		return temperature;
 	}
 	
-	// Calculats wet/drying delta based on player's location and weather
+	// Calculates wet/drying delta based on player's location and weather
 	float GetWetDelta()
 	{
 		float wetDelta = 0;
@@ -873,15 +876,21 @@ class Environment
 		hcPenaltyTotal += NakedBodyPartHeatComfortPenalty(InventorySlots.GLOVES, GameConstants.ENVIRO_HEATCOMFORT_GLOVES_WEIGHT);
 		hcPenaltyTotal += NakedBodyPartHeatComfortPenalty(InventorySlots.LEGS, GameConstants.ENVIRO_HEATCOMFORT_LEGS_WEIGHT);
 		hcPenaltyTotal += NakedBodyPartHeatComfortPenalty(InventorySlots.FEET, GameConstants.ENVIRO_HEATCOMFORT_FEET_WEIGHT);
-		
-		float stomachContentTemperature = m_Player.GetStomach().GetStomachTemperature() * GameConstants.ENVIRO_STOMACH_WEIGHT;
-		stomachContentTemperature = Math.Clamp(stomachContentTemperature, -GameConstants.ENVIRO_STOMACH_WEIGHT, GameConstants.ENVIRO_STOMACH_WEIGHT);
-
-		heatComfortSum = hcBodyPartTotal;
-		heatComfortSum += hcPenaltyTotal; //! heatcomfort body parts penalties
-		heatComfortSum += stomachContentTemperature;
 
 		heatItems = hBodyPartTotal;
+		heatComfortSum = hcBodyPartTotal;
+		heatComfortSum += hcPenaltyTotal; //! heatcomfort body parts penalties
+		
+		{
+			float stomachContentTemperature = m_Player.GetStomach().GetStomachTemperature();
+			if (!IsNeutralTemperature(stomachContentTemperature))
+			{
+				stomachContentTemperature = m_Player.GetStomach().GetStomachTemperature() * GameConstants.ENVIRO_STOMACH_WEIGHT;
+				stomachContentTemperature = Math.Clamp(stomachContentTemperature, -GameConstants.ENVIRO_STOMACH_WEIGHT, GameConstants.ENVIRO_STOMACH_WEIGHT);
+				
+				heatComfortSum += stomachContentTemperature;
+			}
+		}
 
 		float targetHeatComfort = (heatComfortSum + heatItems + (GetPlayerHeat() / 100)) + EnvTempToCoef(m_EnvironmentTemperature);
 
@@ -894,7 +903,7 @@ class Environment
  			targetHeatComfort = Math.Clamp(targetHeatComfort, m_Player.GetStatHeatComfort().GetMin(), m_Player.GetStatHeatComfort().GetMax());
 
 		targetHeatComfort = Math.Round(targetHeatComfort * 100) * 0.01;
-
+		
 		float dynamicHeatComfort;
 		
 		{
@@ -946,11 +955,17 @@ class Environment
 			float heatBufferCap = Math.InverseLerp(0.0, GameConstants.ENVIRO_HEATCOMFORT_WEIGHT_SUMMARY, heatComfortCloths);
 			float heatBufferMax = GameConstants.ENVIRO_PLAYER_HEATBUFFER_CAPACITY_MIN + heatBufferCap * (1 - GameConstants.ENVIRO_PLAYER_HEATBUFFER_CAPACITY_MIN);
 			m_Player.SetHeatBufferDynamicMax(heatBufferMax);
+			
+			float increaseRate = 0.0;
+			float decreaseRate = 0.0;
 
 			if (m_EnvironmentSnapshot)
 			{
-				float increaseRate = GameConstants.ENVIRO_PLAYER_HEATBUFFER_INCREASE / (heatBufferMax * (( -GameConstants.ENVIRO_PLAYER_HEATBUFFER_TEMP_AFFECT * m_EnvironmentSnapshot.m_TargetHeatComfort ) + 1 ));
-				float decreaseRate = GameConstants.ENVIRO_PLAYER_HEATBUFFER_DECREASE / (heatBufferMax * (( GameConstants.ENVIRO_PLAYER_HEATBUFFER_TEMP_AFFECT * m_EnvironmentSnapshot.m_TargetHeatComfort ) + 1 ));
+				increaseRate = GameConstants.ENVIRO_PLAYER_HEATBUFFER_INCREASE / (heatBufferMax * (( -GameConstants.ENVIRO_PLAYER_HEATBUFFER_TEMP_AFFECT * m_EnvironmentSnapshot.m_TargetHeatComfort ) + 1 ));
+				decreaseRate = GameConstants.ENVIRO_PLAYER_HEATBUFFER_DECREASE / (heatBufferMax * (( GameConstants.ENVIRO_PLAYER_HEATBUFFER_TEMP_AFFECT * m_EnvironmentSnapshot.m_TargetHeatComfort ) + 1 ));
+				
+				if (m_IsInWater)
+					decreaseRate *= GameConstants.ENVIRO_PLAYER_HEATBUFFER_WATEREFFECT * m_WaterLevel;
 			}
 
 			if (!m_HasTemperatureSources)
@@ -973,7 +988,7 @@ class Environment
 			}
 			else
 			{
-				if (m_HeatComfort > PlayerConstants.THRESHOLD_HEAT_COMFORT_MINUS_WARNING)
+				if (m_HeatComfort > PlayerConstants.THRESHOLD_HEAT_COMFORT_MINUS_WARNING && m_UTSAverageTemperature > 0) // m_UTSAverageTemperature can be negative
 				{
 					if (applicableHeatbuffer < heatBufferMax)
 						m_Player.GetStatHeatBuffer().Add(increaseRate);
@@ -1005,23 +1020,20 @@ class Environment
 		for (int attIdx = 0; attIdx < attCount; ++attIdx)
 		{
 			attachment = m_Player.GetInventory().GetAttachmentFromIndex(attIdx);
-			if (attachment.IsClothing())
+			item = ItemBase.Cast(attachment);
+			int attachmentSlot = attachment.GetInventory().GetSlotId(0);
+			
+			//! go through all body parts we've defined for that zone (ex.: head, body, feet)
+			for (int i = 0; i < pBodyPartIds.Count(); ++i)
 			{
-				item = ItemBase.Cast(attachment);
-				int attachmentSlot = attachment.GetInventory().GetSlotId(0);
-				
-				//! go through all body parts we've defined for that zone (ex.: head, body, feet)
-				for (int i = 0; i < pBodyPartIds.Count(); ++i)
+				if (attachmentSlot == pBodyPartIds[i])
 				{
-					if (attachmentSlot == pBodyPartIds[i])
-					{
-						float heatPermCoef = item.GetHeatPermeabilityCoef();
-						//first handle the item itself, if necessary
-						if (item.CanHaveTemperature() && !item.IsSelfAdjustingTemperature())
-							SetProcessedItemTemperature(item,heatPermCoef);
-						
-						ProcessItemHierarchyRecursive(item,heatPermCoef);
-					}
+					float heatPermCoef = item.GetHeatPermeabilityCoef();
+					//first handle the item itself, if necessary
+					if (item.CanHaveTemperature() && !item.IsSelfAdjustingTemperature())
+						SetProcessedItemTemperature(item,heatPermCoef);
+					
+					ProcessItemHierarchyRecursive(item,heatPermCoef);
 				}
 			}
 		}
@@ -1253,10 +1265,10 @@ class Environment
 		}
 		itemCoefAverage /= UTScount;
 		SetItemHeatingCoef(itemCoefAverage);
-
+		
 		float min = MiscGameplayFunctions.GetMinValue(utsTemperatures);
 		float max = MiscGameplayFunctions.GetMaxValue(utsTemperatures);
-		
+
 		if (max > 0 && min < 0)
 		{
 			//! adds average of 2 most significat sources to buffer
@@ -1380,7 +1392,14 @@ class Environment
 		message += "Player stats";
 		message += "\nHeat comfort(target): " + GetTargetHeatComfort().ToString();
 		message += "\nHeat comfort(dynamic): " + m_HeatComfort.ToString();
-		message += "\nInside: " + IsInsideBuilding().ToString() + " (" + m_Player.GetSurfaceType() + ")";
+		
+		int liquidType;
+		string impact, surfaceType;
+		g_Game.SurfaceUnderObjectExCorrectedLiquid(m_Player, surfaceType, impact, liquidType);
+		
+		message += "\nInside: " + IsInsideBuilding().ToString();
+		message += "\nSurface: " + surfaceType;
+		message += "\nLiquid: " + liquidType;
 		message += "\nUnder roof: " + m_IsUnderRoof.ToString() + " (" + GetNextRoofCheck() + ")";
 		if (IsWaterContact() && m_WaterLevel > WATER_LEVEL_NONE)
 		{
@@ -1415,6 +1434,14 @@ class Environment
 		}
 
 		return 0.0;
+	}
+	
+	private bool IsNeutralTemperature(float temperature, float lowerLimit = GameConstants.ITEM_TEMPERATURE_NEUTRAL_ZONE_LOWER_LIMIT, float upperLimit = GameConstants.ITEM_TEMPERATURE_NEUTRAL_ZONE_UPPER_LIMIT)
+	{
+		if (temperature >= lowerLimit && temperature <= upperLimit)
+			return true;
+
+		return false;
 	}
 	
 	private float NormalizedTemperature(float temperature, float lowerLimit = GameConstants.ENVIRO_LOW_TEMP_LIMIT, float upperLimit = GameConstants.ENVIRO_HIGH_TEMP_LIMIT)

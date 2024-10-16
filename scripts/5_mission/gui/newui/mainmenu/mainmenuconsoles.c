@@ -303,30 +303,26 @@ class MainMenuConsole extends UIScriptedMenu
 			if (GetUApi().GetInputByID(UAUIBack).LocalPress())
 			{
 				if (!GetGame().GetUIManager().IsDialogHiding())
-				{
 					Exit();
-				}
 			}
 		#else
+			if (GetUApi().GetInputByID(UAUIBack).LocalPress())
+				EnterScriptedMenu(MENU_MAIN);
+
 			if (GetUApi().GetInputByID(UAUICredits).LocalPress())
-			{
 				OpenCredits();
-			}
 		#endif
 		}
-		
+
 		#ifdef PLATFORM_XBOX
 		if (GetUApi().GetInputByID(UAUICtrlY).LocalPress())
-		{
 			ChangeAccount();
-		}
 		#endif
+
 		if (GetUApi().GetInputByID(UAUICtrlX).LocalPress())
 		{
 			if (CanStoreBeOpened())
-			{
 				m_DisplayedDlcHandler.GetModInfo().GoToStore();
-			}
 		}
 	}
 	

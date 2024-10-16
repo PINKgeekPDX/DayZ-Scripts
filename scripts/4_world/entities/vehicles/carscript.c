@@ -266,10 +266,7 @@ class CarScript extends Car
 	static const int SELECTION_ID_TAIL_LIGHT_L 		= 6;
 	static const int SELECTION_ID_TAIL_LIGHT_R 		= 7;
 	static const int SELECTION_ID_DASHBOARD_LIGHT 	= 8;
-	
-	protected ref set<int> m_UnconsciousCrewMemberIndices;
-	protected ref set<int> m_DeadCrewMemberIndices;
-	
+		
 	protected ref array<ref EffWheelSmoke> m_WheelSmokeFx;
 	protected ref array<int> m_WheelSmokePtcFx;
 								
@@ -310,10 +307,7 @@ class CarScript extends Car
 		
 		m_CarHornState = ECarHornState.OFF;
 		m_CarEngineSoundState = CarEngineSoundState.NONE;
-		
-		m_UnconsciousCrewMemberIndices 	= new set<int>();
-		m_DeadCrewMemberIndices 		= new set<int>();
-		
+				
 		RegisterNetSyncVariableBool("m_HeadlightsOn");
 		RegisterNetSyncVariableBool("m_BrakesArePressed");
 		RegisterNetSyncVariableBool("m_ForceUpdateLights");
@@ -1637,25 +1631,7 @@ class CarScript extends Car
 		}
 		#endif
 	}
-	
-	override void MarkCrewMemberUnconscious(int crewMemberIndex)
-	{
-		set<int> crewMemberIndicesCopy = new set<int>();
-		crewMemberIndicesCopy.Copy(m_UnconsciousCrewMemberIndices);
-		crewMemberIndicesCopy.Insert(crewMemberIndex);
-
-		m_UnconsciousCrewMemberIndices = crewMemberIndicesCopy;
-	}
-	
-	override void MarkCrewMemberDead(int crewMemberIndex)
-	{
-		set<int> crewMemberIndicesCopy = new set<int>();
-		crewMemberIndicesCopy.Copy(m_DeadCrewMemberIndices);
-		crewMemberIndicesCopy.Insert(crewMemberIndex);
-
-		m_DeadCrewMemberIndices = crewMemberIndicesCopy;
-	}
-	
+		
 	override void HandleByCrewMemberState(ECrewMemberState state)
 	{
 		switch (state)

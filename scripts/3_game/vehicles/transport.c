@@ -14,6 +14,15 @@ class TransportOwnerState : PawnOwnerState
 	proto native void	SetAngularVelocity(vector value);
 	proto native void	GetAngularVelocity(out vector value);
 
+	proto native void	SetPhysicsTimeStamp(int value);
+	proto native int	GetPhysicsTimeStamp();
+	
+	proto native void	SetWaterTime(float value);
+	proto native float	GetWaterTime();
+	
+	proto native void	SetBuoyancySubmerged(float value);
+	proto native float	GetBuoyancySubmerged();
+
 #ifdef DIAG_DEVELOPER
 	override event void	GetTransform(inout vector transform[4])
 	{
@@ -53,7 +62,10 @@ class Transport extends EntityAI
 	
 	protected bool m_EngineZoneReceivedHit;
 	protected vector m_fuelPos;
-
+	
+	protected ref set<int> m_UnconsciousCrewMemberIndices;
+	protected ref set<int> m_DeadCrewMemberIndices;
+	
 	void Transport()
 	{
 		RegisterNetSyncVariableBool("m_EngineZoneReceivedHit");
@@ -62,6 +74,9 @@ class Transport extends EntityAI
 			m_fuelPos = GetMemoryPointPos("refill");
 		else
 			m_fuelPos = "0 0 0";
+		
+		m_UnconsciousCrewMemberIndices 	= new set<int>();
+		m_DeadCrewMemberIndices 		= new set<int>();
 	}
 	
 	override void EEHitBy(TotalDamageResult damageResult, int damageType, EntityAI source, int component, string dmgZone, string ammo, vector modelPos, float speedCoef)
@@ -202,8 +217,23 @@ class Transport extends EntityAI
 		return 4.0;
 	}
 	
-	void MarkCrewMemberUnconscious(int crewMemberIndex);
-	void MarkCrewMemberDead(int crewMemberIndex);
+	void MarkCrewMemberUnconscious(int crewMemberIndex)
+	{
+		set<int> crewMemberIndicesCopy = new set<int>();
+		crewMemberIndicesCopy.Copy(m_UnconsciousCrewMemberIndices);
+		crewMemberIndicesCopy.Insert(crewMemberIndex);
+
+		m_UnconsciousCrewMemberIndices = crewMemberIndicesCopy;
+	}
+	
+	void MarkCrewMemberDead(int crewMemberIndex)
+	{
+		set<int> crewMemberIndicesCopy = new set<int>();
+		crewMemberIndicesCopy.Copy(m_DeadCrewMemberIndices);
+		crewMemberIndicesCopy.Insert(crewMemberIndex);
+
+		m_DeadCrewMemberIndices = crewMemberIndicesCopy;
+	}
 	protected void HandleByCrewMemberState(ECrewMemberState state);
 
 	vector GetTransportCameraOffset()

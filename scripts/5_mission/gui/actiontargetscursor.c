@@ -753,7 +753,7 @@ class ActionTargetsCursor : ScriptedWidgetEventHandler
 			InventoryLocation invLocation = new InventoryLocation();
 			item.GetInventory().GetCurrentInventoryLocation(invLocation);
 
-			if (!item.IsTakeable() || (m_Player && m_Player.IsInVehicle()) || invLocation.GetType() != InventoryLocationType.GROUND)
+			if ((!item.IsTakeable() && !item.IsActionTargetVisible()) || (m_Player && m_Player.IsInVehicle()) || invLocation.GetType() != InventoryLocationType.GROUND)
 				m_Hidden = true;
 		}
 	}

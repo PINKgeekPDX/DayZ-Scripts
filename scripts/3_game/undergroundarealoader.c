@@ -15,6 +15,7 @@ class JsonUndergroundAreaBreadcrumb
 	float 				EyeAccommodation;
 	bool 				UseRaycast;
 	float 				Radius;
+	bool 				LightLerp;	// only used in LinePointFade
 }
 
 class JsonUndergroundAreaTriggerData
@@ -38,6 +39,7 @@ class JsonUndergroundAreaTriggerData
 	ref array<float> Size;
 	float  EyeAccommodation;
 	float  InterpolationSpeed;
+	bool UseLinePointFade;	// simple fade between points which are defined using existing breadcrumbs array 
 	
 	ref array<ref JsonUndergroundAreaBreadcrumb> Breadcrumbs;
 	

@@ -114,6 +114,8 @@ class TrapSpawnBase extends ItemBase
 		if ( !super.OnStoreLoad(ctx, version) )
 			return false;
 		
+		m_IsStoreLoad = true;
+		
 		bool b_is_active = false;
 		if ( !ctx.Read( b_is_active ) )
 			b_is_active = false;
@@ -136,15 +138,15 @@ class TrapSpawnBase extends ItemBase
 				m_CatchEnviroMask = enviroMask;
 		}
 		
-		InitCatchingComponent();
-		
 		if (b_is_active)
 		{
+			InitCatchingComponent();
 			SetActive();
 		}
 		
 		SetDeployed( b_is_deployed );
 		
+		m_IsStoreLoad = false;
 		return true;
 	}
 
@@ -313,7 +315,7 @@ class TrapSpawnBase extends ItemBase
 		else
 		{
 			m_AdjustedMaxActiveTime = m_MaxActiveTime + m_InitWaitTime;
-			RunTrappingTimer(m_InitWaitTime,"EvaluateCatch");
+			RunTrappingTimer(m_InitWaitTime + m_UpdateWaitTime,"EvaluateCatch");
 		}
 	}
 	
@@ -356,12 +358,12 @@ class TrapSpawnBase extends ItemBase
 			
 			ResetActiveProgress();
 			m_InitWaitTime = Math.RandomFloatInclusive(m_InitWaitTimeMin,m_InitWaitTimeMax);
-			if (!m_CatchingContext) //presumably activated by the player, store load initializes component separately
+			if (!m_IsStoreLoad) //presumably activated by the player, store load initializes component separately
 			{
 				InitCatchingComponent();
 				UpdateTrapEnviroMask();
 				
-				RunTrappingTimer(m_InitWaitTime,"EvaluateCatch");
+				RunTrappingTimer(m_InitWaitTime + m_UpdateWaitTime,"EvaluateCatch");
 				m_AdjustedMaxActiveTime = m_MaxActiveTime + m_InitWaitTime;
 			}
 			else //presumed store load
@@ -369,7 +371,7 @@ class TrapSpawnBase extends ItemBase
 				SetTrapEnviroMask(m_CatchEnviroMask);
 				
 				RunTrappingTimer(m_UpdateWaitTime,"EvaluateCatch");
-				m_AdjustedMaxActiveTime = m_MaxActiveTime + m_UpdateWaitTime;
+				m_AdjustedMaxActiveTime = m_MaxActiveTime;
 			}
 		}
 	}
@@ -425,6 +427,8 @@ class TrapSpawnBase extends ItemBase
 				SetAnimationPhase( m_AnimationPhaseUsed, 0 );
 			}
 			
+			m_CatchingContext = null;
+			
 			SetSynchDirty();
 		}
 	}
@@ -438,6 +442,7 @@ class TrapSpawnBase extends ItemBase
 		{
 			Print("dbgTrapz | delta: " + m_CurrentlyUsedDelta);
 			Print("dbgTrapz | m_ElapsedTime: " + m_ElapsedTime);
+			Print("dbgTrapz | m_AdjustedMaxActiveTime: " + m_AdjustedMaxActiveTime);
 		}
 		#endif
 	}
@@ -470,11 +475,6 @@ class TrapSpawnBase extends ItemBase
 		
 		m_IsPastWaitingTime = true;
 		IncreaseElapsedTime();
-		if (m_ElapsedTime > m_AdjustedMaxActiveTime)
-		{
-			SetUsed();
-			return;
-		}
 		
 		#ifdef DEVELOPER
 		if (IsCLIParam("catchingLogs"))
@@ -502,6 +502,12 @@ class TrapSpawnBase extends ItemBase
 		}
 		
 		m_Timer.Stop();
+		
+		if (m_ElapsedTime >= m_AdjustedMaxActiveTime)
+		{
+			SetUsed();
+			return;
+		}
 		
 		if (success)
 		{
@@ -548,6 +554,7 @@ class TrapSpawnBase extends ItemBase
 		if (GetGame().IsMultiplayer() && GetGame().IsClient())
 			return;
 		
+		UpdatePreyPos();
 		SetIsDeploySound(false);
 		ItemBase catch;
 		if (m_CanCatch)
@@ -632,7 +639,7 @@ class TrapSpawnBase extends ItemBase
 		else
 		{
 			SEffectManager.ReinitParticleServer(m_CatchParticleEffecterId, new ParticleEffecterParameters("ParticleEffecter", 5, particleId)); //reinit here, since particleId might differ
-			SEffectManager.ReactivateParticleServer(m_CatchParticleEffecterId); //TODO: re-evaluate, variable sync could cause issues here...store last 'particleId' and compare, reinit on change only?
+			SEffectManager.ReactivateParticleServer(m_CatchParticleEffecterId);
 		}
 	}
 	

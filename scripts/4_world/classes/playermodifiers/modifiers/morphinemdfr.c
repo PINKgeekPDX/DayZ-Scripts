@@ -4,11 +4,13 @@ class MorphineMdfr: ModifierBase
 	
 	override void Init()
 	{
-		m_TrackActivatedTime = true;
-		m_IsPersistent = true;
+		m_TrackActivatedTime 	= true;
+		m_AnalyticsStatsEnabled = true;
+		m_IsPersistent 			= true;
 		m_ID 					= eModifiers.MDF_MORPHINE;
 		m_TickIntervalInactive 	= DEFAULT_TICK_TIME_INACTIVE;
 		m_TickIntervalActive 	= 1;
+
 		DisableActivateCheck();
 	}
 
@@ -30,10 +32,8 @@ class MorphineMdfr: ModifierBase
 	override void OnActivate(PlayerBase player)
 	{
 		if (player.GetBrokenLegs() != eBrokenLegs.NO_BROKEN_LEGS)
-		{
 			player.m_ShockHandler.SetMultiplier(0.1); //was 0.5 //Switch the shock multiplier NEED A CONST
-		}
-		//if( player.GetNotifiersManager() ) player.GetNotifiersManager().ActivateByType(eNotifiers.NTF_PILLS);
+
 		player.IncreaseHealingsCount();
 		m_Player.m_InjuryHandler.m_ForceInjuryAnimMask = m_Player.m_InjuryHandler.m_ForceInjuryAnimMask | eInjuryOverrides.MORPHINE;
 	}
@@ -43,7 +43,7 @@ class MorphineMdfr: ModifierBase
 		
 		if (player.GetBrokenLegs() != eBrokenLegs.NO_BROKEN_LEGS)
 			player.m_ShockHandler.SetMultiplier(1); //Reset the shock multiplier when modifier stops
-		//if( player.GetNotifiersManager() ) player.GetNotifiersManager().DeactivateByType(eNotifiers.NTF_PILLS);
+
 		player.DecreaseHealingsCount();
 		m_Player.m_InjuryHandler.m_ForceInjuryAnimMask = m_Player.m_InjuryHandler.m_ForceInjuryAnimMask & ~eInjuryOverrides.MORPHINE;
 	}
@@ -52,18 +52,9 @@ class MorphineMdfr: ModifierBase
 	{
 		float attached_time = GetAttachedTime();
 		
-		if( attached_time >= LIFETIME )
-		{
+		if (attached_time >= LIFETIME)
 			return true;
-		}
 		else
-		{
 			return false;
-		}
 	}
-
-	override void OnTick(PlayerBase player, float deltaT)
-	{
-		
-	}
-};
+}

@@ -186,6 +186,7 @@ class ITEM_WorldData : ITEM_DataBase
 	ref array<float> environmentMinTemps;
 	ref array<float> environmentMaxTemps;
 	ref array<float> wetnessWeightModifiers = {GameConstants.WEIGHT_DRY,GameConstants.WEIGHT_DAMP,GameConstants.WEIGHT_WET,GameConstants.WEIGHT_SOAKING_WET,GameConstants.WEIGHT_DRENCHED};
+	ref TStringArray playerRestrictedAreaFiles;
 };
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------

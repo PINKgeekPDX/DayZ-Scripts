@@ -4,6 +4,7 @@ class GetOutTransportActionData : ActionData
 	float m_Speed;
 	float m_JumpingOutThreshold;
 	bool m_WasJumpingOut 	= false;
+	bool m_WasJumpingOutAnim= false;
 	
 	// obsolete
 	Car m_Car;
@@ -11,6 +12,12 @@ class GetOutTransportActionData : ActionData
 	vector m_StartLocation;
 	float m_DmgTaken; 
 	float m_ShockTaken;
+}
+
+// client determines animation, server will still deal damage
+class GetOutTransportActionReciveData : ActionReciveData
+{
+	bool m_WasJumpingOutAnim = false;
 }
 
 class ActionGetOutTransport : ActionBase
@@ -24,7 +31,7 @@ class ActionGetOutTransport : ActionBase
 	const int HIGH_SPEED_VALUE			= 30;
 	
 	protected const float CAR_JUMPOUT_THRESHOLD 	= 8.0;	// speed in km/h at which leaving the vehicle is considered a jump out
-	protected const float BOAT_JUMPOUT_THRESHOLD 	= 1.0;
+	protected const float BOAT_JUMPOUT_THRESHOLD 	= 5.0;
 	
 	const int HEALTH_LOW_SPEED_VALUE 	= 30;
 	const int HEALTH_HIGH_SPEED_VALUE 	= 70;
@@ -74,6 +81,58 @@ class ActionGetOutTransport : ActionBase
 		return false;
 	}
 
+	override bool SetupAction(PlayerBase player, ActionTarget target, ItemBase item, out ActionData action_data, Param extra_data = NULL)
+	{
+		if (super.SetupAction(player, target, item, action_data, extra_data))
+		{
+			HumanCommandVehicle vehCommand = action_data.m_Player.GetCommand_Vehicle();
+			if (vehCommand)
+			{
+				Transport trans = vehCommand.GetTransport();
+				if (trans)
+				{
+					GetOutTransportActionData gotActionData = GetOutTransportActionData.Cast(action_data);
+					ProcessGetOutTransportActionData(trans, gotActionData);
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	override void WriteToContext(ParamsWriteContext ctx, ActionData action_data)
+	{
+		super.WriteToContext(ctx, action_data);
+		
+		GetOutTransportActionData gotActionData = GetOutTransportActionData.Cast(action_data);
+
+		ctx.Write(gotActionData.m_WasJumpingOutAnim);
+	}
+	
+	override bool ReadFromContext(ParamsReadContext ctx, out ActionReciveData action_recive_data)
+	{
+		if (!action_recive_data)
+			action_recive_data = new GetOutTransportActionReciveData;
+
+		super.ReadFromContext(ctx, action_recive_data);
+		GetOutTransportActionReciveData action_data_got = GetOutTransportActionReciveData.Cast(action_recive_data);
+		
+		if (!ctx.Read(action_data_got.m_WasJumpingOutAnim))
+			return false;
+		
+		return true;
+	}
+	
+	override void HandleReciveData(ActionReciveData action_recive_data, ActionData action_data)
+	{
+		super.HandleReciveData(action_recive_data, action_data);
+		
+		GetOutTransportActionReciveData recive_data_got = GetOutTransportActionReciveData.Cast(action_recive_data);
+		GetOutTransportActionData action_data_got = GetOutTransportActionData.Cast(action_data);
+		
+		action_data_got.m_WasJumpingOutAnim = recive_data_got.m_WasJumpingOutAnim;
+	}
+
 	void ProcessGetOutTransportActionData(Transport veh, GetOutTransportActionData got_action_data)
 	{
 		float speed;
@@ -85,13 +144,18 @@ class ActionGetOutTransport : ActionBase
 		else if (Boat.Cast(veh))
 		{
 			got_action_data.m_JumpingOutThreshold = BOAT_JUMPOUT_THRESHOLD;
-			vector velocity = dBodyGetVelocityAt(veh, veh.GetPosition());
+			vector playerPosition = got_action_data.m_Player.PhysicsGetPositionWS();
+			vector velocity = dBodyGetVelocityAt(veh, playerPosition);
+			velocity[1] = 0; // sliding check doesn't use vertical velocity
 			speed = velocity.Normalize();
 		}
 
 		got_action_data.m_Speed = speed;
-		got_action_data.m_WasJumpingOut = speed > got_action_data.m_JumpingOutThreshold;
 		got_action_data.m_Vehicle = veh;
+
+		got_action_data.m_WasJumpingOut = got_action_data.m_Speed > got_action_data.m_JumpingOutThreshold;
+		if (got_action_data.m_Player.IsOwner())
+			got_action_data.m_WasJumpingOutAnim = got_action_data.m_WasJumpingOut;
 	}
 
 	override void OnStart(ActionData action_data)
@@ -107,7 +171,7 @@ class ActionGetOutTransport : ActionBase
 				GetOutTransportActionData gotActionData = GetOutTransportActionData.Cast(action_data);
 				ProcessGetOutTransportActionData(trans, gotActionData);
 
-				if (!gotActionData.m_WasJumpingOut)
+				if (!gotActionData.m_WasJumpingOutAnim)
 					vehCommand.GetOutVehicle();
 				else
 					vehCommand.JumpOutVehicle();
@@ -176,7 +240,8 @@ class ActionGetOutTransport : ActionBase
 		
 		GetOutTransportActionData gotActionData = GetOutTransportActionData.Cast(action_data);
 		
-		if (gotActionData.m_WasJumpingOut)
+		// if server determined it was a jump out, or client played jump out animation, deal damage
+		if (gotActionData.m_WasJumpingOut || gotActionData.m_WasJumpingOutAnim)
 		{
 			gotActionData.m_Player.OnJumpOutVehicleFinish(gotActionData.m_Speed);
 			

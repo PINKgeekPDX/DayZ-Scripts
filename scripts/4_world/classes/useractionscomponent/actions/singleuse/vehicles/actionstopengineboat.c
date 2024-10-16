@@ -30,18 +30,14 @@ class ActionStopEngineBoat: ActionSingleUseBase
 		return false;
 	}
 
-	override void OnExecuteServer(ActionData action_data)
+	override void OnExecute(ActionData action_data)
 	{
 		HumanCommandVehicle vehCmd = action_data.m_Player.GetCommand_Vehicle();
 		if (!vehCmd)
 			return;
 		
-		Transport trans = vehCmd.GetTransport();
-		if (!trans)
-			return;
-		
-		Boat boat = Boat.Cast(trans);
-		 if (boat)
+		Boat boat = Boat.Cast(vehCmd.GetTransport());
+		if (boat)
 			boat.EngineStop();
 		
 	}

@@ -2174,6 +2174,8 @@ class DayZPlayerImplement extends DayZPlayer
 	override void CommandHandler(float pDt, int pCurrentCommandID, bool pCurrentCommandFinished)
 	{
 		m_dT = pDt;
+
+		vector playerPosition = PhysicsGetPositionWS();
 		
 		if (ModCommandHandlerBefore(pDt, pCurrentCommandID, pCurrentCommandFinished))
 		{
@@ -2243,6 +2245,25 @@ class DayZPlayerImplement extends DayZPlayer
 			return;
 		}
 		
+		//! check for water depth while getting out and start swimming if necessary
+		//! this also handles the last frame of the vehicle command hence it doens't need separate check on pCurrentCommandFinished
+		if ( pCurrentCommandID == DayZPlayerConstants.COMMANDID_VEHICLE )
+		{
+			HumanCommandVehicle cmdVehicle = GetCommand_Vehicle();
+			if ( cmdVehicle && cmdVehicle.IsGettingOut() )
+			{
+				vector waterLevel;
+				if ( m_Swimming.CheckSwimmingStart( waterLevel ) )
+				{
+					// not all the events may have been called as getting out could have occurred while under water
+					cmdVehicle.ProcessLeaveEvents();
+
+					StartCommand_Swim();
+					return;
+				}
+			}
+		}
+		
 		//! handle finished commands
 		if (pCurrentCommandFinished)
 		{
@@ -2263,7 +2284,7 @@ class DayZPlayerImplement extends DayZPlayer
 			if (PhysicsIsFalling(true))
 			{
 				StartCommand_Fall(0);
-				SetFallYDiff(GetPosition()[1]);
+				SetFallYDiff(playerPosition[1]);
 				return;
 			}
 
@@ -2365,7 +2386,7 @@ class DayZPlayerImplement extends DayZPlayer
 				NoiseParams npar;
 
 				FallDamageData fallDamageData = new FallDamageData();
-				fallDamageData.m_Height = m_FallYDiff - GetPosition()[1];
+				fallDamageData.m_Height = m_FallYDiff - playerPosition[1];
 
 				// land
 				if (fallDamageData.m_Height < 0.5)
@@ -2420,7 +2441,7 @@ class DayZPlayerImplement extends DayZPlayer
 		{
 			// Not in a falling command but the controller is falling, start default fall
 			StartCommand_Fall(0);
-			SetFallYDiff(GetPosition()[1]);
+			SetFallYDiff(playerPosition[1]);
 			return;
 		}
 

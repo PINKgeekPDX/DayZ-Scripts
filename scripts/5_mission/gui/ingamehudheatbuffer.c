@@ -240,7 +240,7 @@ class IngameHudHeatBuffer
 	// Function that calculates and sets the base alpha value for the current heat buffer widget depending on the given heat buffer percentage value and stage threshold 
 	void SetBaseAlpha(Widget hbw, float valuePercent, float stageThreshold)
 	{
-	    float baseAlpha = Math.Lerp(0.50, 1.00, (valuePercent - (stageThreshold / 2)));
+		float baseAlpha = Math.Lerp(0.05, 1.00, (valuePercent / stageThreshold));
 		baseAlpha = Math.Floor(baseAlpha * 100) / 100;
 
 		#ifdef HEATBUFFER_INDICATOR_DEBUG

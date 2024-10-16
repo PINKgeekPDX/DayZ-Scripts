@@ -133,7 +133,10 @@ class ServerBrowserTabConsolePages extends ServerBrowserTab
 			ShowHideConsoleWidgets();
 			UpdatePageButtons();
 			m_WidgetNavFilters.Show(m_IsFilterFocused || m_IsDetailsFocused);
-			m_WidgetNavServers.Show((!m_IsFilterFocused && !m_IsDetailsFocused));
+			if (m_TabType != TabType.FAVORITE)
+			{
+				m_WidgetNavServers.Show((!m_IsFilterFocused && !m_IsDetailsFocused));
+			}
 			m_BtnShowFilters.Show(false);
 			m_BtnShowDetails.Show(false);
 			m_RefreshList.Show(false);
@@ -251,7 +254,6 @@ class ServerBrowserTabConsolePages extends ServerBrowserTab
 		
 		LoadExtraEntries(index);
 		m_ServerList.Update();
-		SetFocusServers();
 	}
 	
 	protected ServerBrowserEntry GetServerEntryByIndex( int index )
@@ -465,6 +467,9 @@ class ServerBrowserTabConsolePages extends ServerBrowserTab
 	
 	override void OnPressShoulder()
 	{
+		if (m_TabType == TabType.FAVORITE)
+			return;
+
 		switch (m_SelectedPanel)
 		{
 			case SelectedPanel.BROWSER:
@@ -489,22 +494,14 @@ class ServerBrowserTabConsolePages extends ServerBrowserTab
 	}
 
 	override void Focus()
-	{		
-		if (m_EntryWidgets.Contains(m_CurrentSelectedServer))
-		{
-			m_EntryWidgets.Get(m_CurrentSelectedServer).Focus();
-			ScrollToEntry(m_EntryWidgets.Get(m_CurrentSelectedServer));
-		}
-
-		array<ref GetServersResultRow> entries = m_EntriesSorted[m_SortType];
-		if (entries && entries.Count() > 0)
+	{
+		if (m_TabType == TabType.FAVORITE)
 		{
 			SetFocusServers();
 		}
 		else
-		{	
-			if (m_TabType != TabType.FAVORITE)
-				SwitchToFilters(true);
+		{
+			SwitchToFilters(true);
 		}
 	}
 	
@@ -565,13 +562,21 @@ class ServerBrowserTabConsolePages extends ServerBrowserTab
 		if (!m_MouseKeyboardControlled)
 		{
 			m_WidgetNavFilters.Show(false);
-			m_WidgetNavServers.Show(true);
+			if (m_TabType != TabType.FAVORITE)
+			{
+				m_WidgetNavServers.Show(true);
+			}
 		}
 
 		array<ref GetServersResultRow> entries = m_EntriesSorted[m_SortType];
 		if (entries && entries.Count() > 0)
 		{
-			m_EntryWidgets.Get(entries.Get(0).GetIpPort()).Focus();
+			string entryKey = entries.Get(0).GetIpPort();
+			ServerBrowserEntry sbEntry = m_EntryWidgets.Get(entryKey);
+			if (sbEntry)
+			{
+				sbEntry.Focus();
+			}
 			
 			m_Menu.ShowAButton(true);
 			m_Menu.UpdateAButtonLabel("#str_serverbrowserroot_toolbar_bg_consoletoolbar_connect_connecttext0");

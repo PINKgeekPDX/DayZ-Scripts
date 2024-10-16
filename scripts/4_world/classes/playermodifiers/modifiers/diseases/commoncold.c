@@ -1,6 +1,6 @@
 class CommonColdMdfr : ModifierBase
 {
-	const int AGENT_THRESHOLD_ACTIVATE 		= 200;
+	const int AGENT_THRESHOLD_ACTIVATE 		= 100;
 	const int AGENT_THRESHOLD_DEACTIVATE 	= 0;
 	
 	private const int SNEEZE_RND_DIVIDER_NORMAL_MIN 	= 15;
@@ -8,13 +8,14 @@ class CommonColdMdfr : ModifierBase
 	private const int SNEEZE_RND_DIVIDER_SUPPRESSED_MIN = 30;
 	private const int SNEEZE_RND_DIVIDER_SUPPRESSED_MAX = 40;
 	
-	private const int TEMPORARY_RESISTANCE_TIME = 600;
+	private const int TEMPORARY_RESISTANCE_TIME = 900;
 	
 	private ModifiersManager m_ModifiersManager;
 
 	override void Init()
 	{
 		m_TrackActivatedTime	= false;
+		m_AnalyticsStatsEnabled = true;
 		m_ID 					= eModifiers.MDF_COMMON_COLD;
 		m_TickIntervalInactive 	= DEFAULT_TICK_TIME_INACTIVE;
 		m_TickIntervalActive 	= DEFAULT_TICK_TIME_ACTIVE;
@@ -55,7 +56,7 @@ class CommonColdMdfr : ModifierBase
 
 	override protected void OnTick(PlayerBase player, float deltaT)
 	{
-		float chanceOfSneeze = player.GetSingleAgentCountNormalized(eAgents.INFLUENZA);
+		float chanceOfSneeze = Math.Clamp(player.GetSingleAgentCountNormalized(eAgents.INFLUENZA),0.4,0.75);
 		
 		float randomDivider = Math.RandomInt(SNEEZE_RND_DIVIDER_NORMAL_MIN, SNEEZE_RND_DIVIDER_NORMAL_MAX);
 		if (m_ModifiersManager.IsModifierActive(eModifiers.MDF_PAINKILLERS) || m_ModifiersManager.IsModifierActive(eModifiers.MDF_MORPHINE))

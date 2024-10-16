@@ -1256,6 +1256,10 @@ void DayZPlayerTypeRegisterItems(DayZPlayerType pType)
 	    pType.AddItemInHandsProfileIK("LegsCover_Improvised",			"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/clothing/ReflexVest.anm");
 		pType.AddItemInHandsProfileIK("Chainmail_Leggings",				"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/clothing/ReflexVest.anm");
 		pType.AddItemInHandsProfileIK("Chainmail",						"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/clothing/Chainmail.anm");
+		pType.AddItemInHandsProfileIK("Blouse_Blue",					"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/clothing/HuntingVest.anm");
+		pType.AddItemInHandsProfileIK("Blouse_Green",					"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/clothing/HuntingVest.anm");
+		pType.AddItemInHandsProfileIK("Blouse_Violet",					"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/clothing/HuntingVest.anm");
+		pType.AddItemInHandsProfileIK("Blouse_White",					"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/clothing/HuntingVest.anm");
 		pType.AddItemInHandsProfileIK("TorsoCover_Improvised",			"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/gear/CombatGloves.anm");
 		pType.AddItemInHandsProfileIK("Chestplate",						"dz/anims/workspaces/player/player_main/weapons/player_main_2h_extinguisher.asi",	twoHanded,						"dz/anims/anm/player/ik/two_handed/chestplate.anm");
 		pType.AddItemInHandsProfileIK("BushlatPoliceJacket_ColorBase",	"dz/anims/workspaces/player/player_main/weapons/player_main_2h_extinguisher.asi",	twoHanded,						"dz/anims/anm/player/ik/two_handed/BushlatPoliceJacket.anm");
@@ -1343,7 +1347,9 @@ void DayZPlayerTypeRegisterItems(DayZPlayerType pType)
 		pType.AddItemInHandsProfileIK("ChristmasHeadband_ColorBase",	"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/gear/dirtbike_visor.anm");
 		pType.AddItemInHandsProfileIK("Headdress_Colorbase",			"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/gear/medicalScrubs_hat.anm");
 		pType.AddItemInHandsProfileIK("SnowstormUshanka_ColorBase",		"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/gear/snowstorm_ushanka.anm");
+		pType.AddItemInHandsProfileIK("SherpaHat_ColorBase",			"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/gear/WinterCoif.anm");
 		pType.AddItemInHandsProfileIK("SkiGoggles_ColorBase",			"dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/gear/ski_goggles.anm");
+		pType.AddItemInHandsProfileIK("Headdress_Wolf",			        "dz/anims/workspaces/player/player_main/player_main_1h.asi",						toolsOneHanded,					"dz/anims/anm/player/ik/gear/wolfheaddress.anm");
 	}
 
 	//! Belts

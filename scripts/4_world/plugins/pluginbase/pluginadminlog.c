@@ -399,6 +399,13 @@ class PluginAdminLog extends PluginBase			// Class for admin log messages handle
 		}
 	}
 	
+	void PlayerTeleportedLog(notnull PlayerBase player, vector startPos, vector targetPos, string reason)
+	{
+		m_PlayerPrefix = GetPlayerPrefix(player, player.GetIdentity());
+		
+		LogPrint(m_PlayerPrefix + " was teleported from: " + startPos.ToString() + " to: " + targetPos.ToString() + ". Reason: " + reason);
+	}
+	
 	void DirectAdminLogPrint(string str)
 	{
 		LogPrint(str);

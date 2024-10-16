@@ -31,44 +31,11 @@ class ActionContinuousBaseCB : ActionBaseCB
 		return DefaultCancelCondition();
 	}
 	
-	
-	override void OnAnimationEvent(int pEventID)	
+	void SetInLoop(bool value)
 	{
-		if ( m_ActionData && m_ActionData.m_Action )
-		{
-			AnimatedActionBase action = AnimatedActionBase.Cast(m_ActionData.m_Action);
-#ifdef DEVELOPER
-			//Print("ActionInteractBase.c | OnAnimationEvent | OnAnimationEvent called");
-#endif
-			
-			if ( LogManager.IsActionLogEnable() )
-			{
-				Debug.ActionLog("Time stamp: " + m_ActionData.m_Player.GetSimulationTimeStamp() + " / " + pEventID, this.ToString() , "n/a", "OnAnimationEvent", m_ActionData.m_Player.ToString() );
-			}
-			
-			if ( !m_Interrupted && pEventID == UA_IN_START ) 
-			{
-				m_inLoop = true;
-			//ActionContinuousBase.Cast(action).OnStartLoop( m_ActionData );
-			}
-			else if ( !m_Interrupted && pEventID == UA_IN_END ) 
-			{
-			
-				m_inLoop = false;
-				//ActionContinuousBase.Cast(action).OnCompleteLoop( m_ActionData );
-			}
-			else if ( !m_Interrupted && pEventID == UA_ANIM_EVENT ) 
-			{
-				action.OnAnimationEvent( m_ActionData );
-				//action.OnCompleteLoop( m_ActionData );
-			}
-		}
-		else
-		{
-			//Debug.LogError("Call OnAnimationEvent ")
-		}
+		 m_inLoop = value;
 	}
-	
+		
 	override void InitActionComponent()
 	{
 		m_Interrupted = false;
@@ -217,6 +184,25 @@ class ActionContinuousBase : AnimatedActionBase
 	override int GetActionCategory()
 	{
 		return AC_CONTINUOUS;
+	}
+	
+	override void OnAnimationEvent(ActionData action_data)	
+	{
+		super.OnAnimationEvent(action_data);
+		ActionContinuousBaseCB callback;
+		if (Class.CastTo(callback, action_data.m_Callback))
+		{
+			if (action_data.m_DelayedAnimationEventID == UA_IN_START) 
+			{
+				OnStartAnimationLoop(action_data);
+				callback.SetInLoop(true);
+			}
+			else if (action_data.m_DelayedAnimationEventID == UA_IN_END) 
+			{
+				OnEndAnimationLoop(action_data);
+				callback.SetInLoop(false);
+			}
+		}
 	}
 	
 	void OnStartAnimationLoop( ActionData action_data )

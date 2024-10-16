@@ -179,8 +179,6 @@ class ServerBrowserEntry extends ScriptedWidgetEventHandler
 		Darken(m_Root, 0, 0);
 		Select();
 		SetFocus(m_Root);
-
-		m_Tab.SwitchToDetails(false);
 		m_Tab.SetServerDetails(m_ServerData, m_IsOnline);
 	}
 	
@@ -228,11 +226,7 @@ class ServerBrowserEntry extends ScriptedWidgetEventHandler
 			{
 				Select();
 				ServerListFocus(true);
-				if (m_IsOnline)
-				{
-					m_Tab.SwitchToDetails(false);
-					m_Tab.SetServerDetails(m_ServerData, m_IsOnline);
-				}
+				m_Tab.SetServerDetails(m_ServerData, m_IsOnline);
 			}
 		#endif
 
@@ -328,6 +322,7 @@ class ServerBrowserEntry extends ScriptedWidgetEventHandler
 		else
 		{
 			Lighten(m_Root, null, 0, 0);
+			Deselect();
 		}
 	}
 

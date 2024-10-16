@@ -14,7 +14,7 @@ class DayZPlayerImplementSwimming
 
 	float  GetWaterDepth()
 	{
-		vector 	pp = m_pPlayer.GetPosition();
+		vector 	pp = m_pPlayer.PhysicsGetPositionWS();
 		vector  wl = HumanCommandSwim.WaterLevelCheck(m_pPlayer, pp);
 
 		return wl[0];
@@ -22,7 +22,7 @@ class DayZPlayerImplementSwimming
 
 	float  GetCharacterDepth()
 	{
-		vector 	pp = m_pPlayer.GetPosition();
+		vector 	pp = m_pPlayer.PhysicsGetPositionWS();
 		vector  wl = HumanCommandSwim.WaterLevelCheck(m_pPlayer, pp);
 
 		return wl[1];

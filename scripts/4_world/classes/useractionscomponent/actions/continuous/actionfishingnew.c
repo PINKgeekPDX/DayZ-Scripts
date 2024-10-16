@@ -122,22 +122,6 @@ class ActionFishingNewCB : ActionContinuousBaseCB
 		DestroySplashEffectSynced();
 	}
 	
-	override void OnAnimationEvent(int pEventID)
-	{
-		super.OnAnimationEvent(pEventID);
-		
-		switch (pEventID)
-		{
-			case UAFishingConstants.EVENT_SPLASH_SIGNAL: 
-				PlaySplashEffectSynced();
-			break;
-			
-			case UAFishingConstants.EVENT_ANIMATE_ROD_CLOSE:
-				m_ActionDataFishing.AnimateRod(false,false);
-			break;
-		}
-	}
-	
 	override void OnStateChange(int pOldState, int pCurrentState)
 	{
 		super.OnStateChange(pOldState,pCurrentState);
@@ -145,7 +129,6 @@ class ActionFishingNewCB : ActionContinuousBaseCB
 		if (pOldState == STATE_NONE && pCurrentState == STATE_LOOP_IN)
 		{
 			m_ActionDataFishing.AnimateRod(true);
-			SetAligning(m_ActionDataFishing.m_Player.GetPosition(),vector.Direction(m_ActionDataFishing.m_Player.GetPosition(), m_ActionDataFishing.m_Target.GetCursorHitPos()));
 		}
 	}
 	
@@ -153,23 +136,6 @@ class ActionFishingNewCB : ActionContinuousBaseCB
 	{
 		if (GetState() == STATE_LOOP_LOOP || GetState() == STATE_LOOP_LOOP2)
 			SetCommand(DayZPlayerConstants.CMD_ACTIONINT_ACTIONLOOP);
-	}
-	
-	void PlaySplashEffectSynced()
-	{
-		if (GetGame().IsServer())
-		{
-			int particleId = m_ActionDataFishing.m_ContextData.GetResultParticleId();
-			if (m_ActionDataFishing.m_SplashUniqueID < 0)
-			{
-				m_ActionDataFishing.m_SplashUniqueID = SEffectManager.CreateParticleServer(m_ActionDataFishing.m_Target.GetCursorHitPos(), new ParticleEffecterParameters("ParticleEffecter", EffecterBase.NOT_DEFINED_LIFESPAN, particleId));
-			}
-			else
-			{
-				SEffectManager.ReinitParticleServer(m_ActionDataFishing.m_SplashUniqueID, new ParticleEffecterParameters("ParticleEffecter", EffecterBase.NOT_DEFINED_LIFESPAN, particleId)); //reinit here, since particleId might differ
-				SEffectManager.ReactivateParticleServer(m_ActionDataFishing.m_SplashUniqueID); //TODO: re-evaluate, variable sync could cause issues here...store last 'particleId' and compare, reinit on change only?
-			}
-		}
 	}
 	
 	//! Destroys the effecter, but lets the rest of the particle play out
@@ -318,6 +284,50 @@ class ActionFishingNew: ActionContinuousBase
 		}
 	}
 	
+	override void OnAnimationEvent( ActionData action_data )
+	{
+		super.OnAnimationEvent(action_data);
+		FishingActionData actionDataFishing = FishingActionData.Cast(action_data);
+		
+		switch (action_data.m_DelayedAnimationEventID)
+		{
+			case UAFishingConstants.EVENT_SPLASH_SIGNAL: 
+				PlaySplashEffectSynced(actionDataFishing);
+			break;
+			
+			case UAFishingConstants.EVENT_ANIMATE_ROD_CLOSE:
+				actionDataFishing.AnimateRod(false,false);
+			break;
+		}
+	}
+	
+	override void OnUpdate(ActionData action_data)
+	{
+		super.OnUpdate(action_data);
+		
+		vector dir = vector.Direction(action_data.m_Player.GetPosition(), action_data.m_Target.GetCursorHitPos());
+		dir[1] = 0;
+		dir.Normalize();
+		action_data.m_Player.AlignDirectionWS(dir);
+	}
+		
+	void PlaySplashEffectSynced(FishingActionData actionDataFishing)
+	{
+		if (GetGame().IsServer())
+		{
+			int particleId = actionDataFishing.m_ContextData.GetResultParticleId();
+			if (actionDataFishing.m_SplashUniqueID < 0)
+			{
+				actionDataFishing.m_SplashUniqueID = SEffectManager.CreateParticleServer(actionDataFishing.m_Target.GetCursorHitPos(), new ParticleEffecterParameters("ParticleEffecter", EffecterBase.NOT_DEFINED_LIFESPAN, particleId));
+			}
+			else
+			{
+				SEffectManager.ReinitParticleServer(actionDataFishing.m_SplashUniqueID, new ParticleEffecterParameters("ParticleEffecter", EffecterBase.NOT_DEFINED_LIFESPAN, particleId)); //reinit here, since particleId might differ
+				SEffectManager.ReactivateParticleServer(actionDataFishing.m_SplashUniqueID);
+			}
+		}
+	}
+	
 	protected bool CheckForSea(ActionData action_data)
 	{
 		bool ret = false;
@@ -353,7 +363,7 @@ class ActionFishingNew: ActionContinuousBase
 			{
 				case HumanCommandActionCallback.STATE_LOOP_ACTION:
 				case HumanCommandActionCallback.STATE_LOOP_LOOP:
-				case HumanCommandActionCallback.STATE_LOOP_LOOP2: //?
+				case HumanCommandActionCallback.STATE_LOOP_LOOP2:
 					FishingActionData data;
 					if (Class.CastTo(data,action_data))
 					{
@@ -365,7 +375,7 @@ class ActionFishingNew: ActionContinuousBase
 				
 				default:
 					super.OnEndInput(action_data);
-					callback.EndActionComponent(); //TODO: think about putting this everywhere; interrupts HumanCommandActionCallback.STATE_LOOP_IN neatly
+					callback.EndActionComponent(); //think about putting this everywhere, interrupts HumanCommandActionCallback.STATE_LOOP_IN neatly
 					break;
 			}
 		}

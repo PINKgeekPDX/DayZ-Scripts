@@ -143,8 +143,15 @@ class ServerBrowserTabPc extends ServerBrowserTab
 			m_BtnShowFilters.Show(false);
 			m_FilterRoot.Show(true);
 		}
-
-		SwitchToDetails();
+		
+		if (m_TabType != TabType.FAVORITE && m_TabType != TabType.LAN)
+		{
+			SwitchToFilters();
+		}
+		else
+		{
+			SwitchToDetails();
+		}
 	}
 
 	void ~ServerBrowserTabPc()
@@ -158,6 +165,7 @@ class ServerBrowserTabPc extends ServerBrowserTab
 		{
 			m_EntriesSorted.GetElement(i).Clear();
 		}
+		m_ServerListEntries.Clear();
 		
 		OnlineServices.m_ServersAsyncInvoker.Insert( m_Menu.OnLoadServersAsync, EScriptInvokerInsertFlags.NONE );
 		
@@ -167,6 +175,7 @@ class ServerBrowserTabPc extends ServerBrowserTab
 		m_TotalLoadedServers = 0;
 		m_ServersEstimateCount = 0;
 		m_PageIndex = 0;		
+		m_SelectedServer =  null;
 		
 		super.RefreshList();
 		
@@ -212,12 +221,7 @@ class ServerBrowserTabPc extends ServerBrowserTab
 		
 		ButtonEnable(m_RefreshList);
 		
-		// Always select first index to display its info in the server details container
-		if (m_TotalLoadedServers > 0)
-		{
-			m_ServerListEntries.Get(0).OnSelect();
-		}
-		else
+		if (m_TotalLoadedServers == 0)
 		{
 			if (GetTabType() != TabType.FAVORITE && GetTabType() != TabType.LAN)
 				SwitchToFilters();
@@ -500,8 +504,7 @@ class ServerBrowserTabPc extends ServerBrowserTab
 		m_PageIndex = page_index;
 		UpdateServerList();
 		UpdatePageButtons();
-		if (m_ServerListEntries.Count())
-			m_ServerListEntries.Get(0).OnSelect();
+		Focus();
 	}
 	
 	void ToggleSort( ESortType type )
@@ -1067,7 +1070,7 @@ class ServerBrowserTabPc extends ServerBrowserTab
 		}
 	}
 	
-	void UpdateServerList()
+	override void UpdateServerList()
 	{
 		int lastFilledIndexOnPage = 0;
 		m_TotalLoadedServers = m_EntriesSorted[m_SortType].Count();
@@ -1088,17 +1091,14 @@ class ServerBrowserTabPc extends ServerBrowserTab
 					m_OnlineFavServers.Insert(server_info.m_Id);
 				}
 				
+				server_info.m_IsSelected = (server_info.m_Id == m_CurrentSelectedServer);
+				
 				entry = GetServerEntryByIndex(i, server_info.m_Id);
 				entry.Show(true);
 				entry.SetIsOnline(true);
 				entry.FillInfo(server_info);
 				entry.SetMods(m_EntryMods.Get(server_info.m_Id));
 				entry.UpdateEntry();
-				
-				if (GetRootMenu() && GetRootMenu().GetServersLoadingTab() != TabType.NONE)
-				{
-					entry.SetName("#dayz_game_loading");
-				}
 				
 				lastFilledIndexOnPage++;
 			}
@@ -1112,7 +1112,9 @@ class ServerBrowserTabPc extends ServerBrowserTab
 				}
 			}
 		}
+		
 		LoadExtraEntries(lastFilledIndexOnPage);
+		
 		m_ServerList.Update();
 	}
 	

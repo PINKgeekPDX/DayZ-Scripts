@@ -440,4 +440,9 @@ class CfgGameplayHandler
 		return m_Data.PlayerData.spawnGearPresetFiles;
 	}
 	//----------------------------------------------------------------------------------
+	static TStringArray GetPlayerRestrictedAreaFiles()
+	{
+		return m_Data.WorldsData.playerRestrictedAreaFiles;
+	}
+	//----------------------------------------------------------------------------------
 }

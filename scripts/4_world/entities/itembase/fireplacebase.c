@@ -2250,13 +2250,6 @@ class FireplaceBase : ItemBase
 				if (item.GetHealthLevel() < GameConstants.STATE_BADLY_DAMAGED)
 					item.DecreaseHealth(PARAM_BURN_DAMAGE_COEF, false);
 			}
-			
-			//! cookable
-			if (item.CanBeCooked() && item.GetHealthLevel() >= GameConstants.STATE_BADLY_DAMAGED)
-			{
-				Edible_Base edible_item = Edible_Base.Cast(item);
-				edible_item.ChangeFoodStage(FoodStageType.BURNED);
-			}
 		}
 	}
 	

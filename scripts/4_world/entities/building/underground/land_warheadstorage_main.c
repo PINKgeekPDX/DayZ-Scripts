@@ -1,32 +1,12 @@
-class BunkerStorageDoorLight extends PointLightBase
-{
-	void BunkerStorageDoorLight()
-	{
-		SetVisibleDuringDaylight(true);
-		SetRadiusTo(5);
-		SetBrightnessTo(6.5);
-		FadeIn(1);
-		SetFadeOutTime(2);
-		SetFlareVisible(false);
-		SetCastShadow(false);
-		SetAmbientColor(1, 0.7, 0.3);
-		SetDiffuseColor(1, 0.7, 0.3);
-	}
-}
-
 class Land_WarheadStorage_Main : House
 {
-	protected const float DOOR_AUTOCLOSE_TIME = 12;//how long before the outer door auto-close after being opened
-	
-	protected ref map<int, ref Timer> m_AutoCloseTimers;
-	protected BunkerStorageDoorLight m_StorageDoorLights[4];
-	
-	protected EffectSound m_SoundDoorLoop;
-	protected ref array<EffectSound> m_PoweredSoundEffects = new array<EffectSound>();
-	
-	protected bool m_HasPower;
 	protected bool m_HasPowerPrev;
-		
+	protected WarheadStorageLight m_StorageDoorLights[4];
+	protected EffectSound m_SoundDoorLoop[4];
+	protected ref array<EffectSound> m_PoweredSoundEffects = new array<EffectSound>();
+	protected ref map<int, ref Timer> m_AutoCloseTimers;
+	
+	protected const float DOOR_AUTOCLOSE_TIME = 12;//how long before the outer door auto-close after being opened
 	protected const int SOURCES_COUNT = 4;	// storage lights, side vents, lamps
 	
 	protected const string WARHEAD_BUNKER_TRIGGER = "UndergroundBunkerTrigger";
@@ -38,14 +18,6 @@ class Land_WarheadStorage_Main : House
 	protected const string ALARM_DOOR_OPEN_SOUND 		= "UndergroundDoor_Alarm_Start_SoundSet";
 	protected const string ALARM_DOOR_OPEN_LOOP_SOUND 	= "UndergroundDoor_Alarm_Loop_SoundSet";
 	protected const string ALARM_DOOR_CLOSE_SOUND		= "UndergroundDoor_Alarm_End_SoundSet";
-	protected const string BIG_DOOR_OPEN_SOUND			= "Bunker_Airlock_Door_Open_SoundSet";
-	protected const string BIG_DOOR_CLOSE_SOUND			= "Bunker_Airlock_Door_Close_SoundSet";
-	protected const string STORAGE_DOOR_OPEN_SOUND 		= "Bunker_doorMetalStorageOpen_SoundSet";
-	protected const string STORAGE_DOOR_CLOSE_SOUND 	= "Bunker_doorMetalStorageClose_SoundSet";
-	protected const string FENCE_DOOR_OPEN_SOUND 		= "Bunker_doorMetalJailSlide_Open_SoundSet";
-	protected const string FENCE_DOOR_CLOSE_SOUND 		= "Bunker_doorMetalJailSlide_Close_SoundSet";
-	protected const string METAL_DOOR_OPEN_SOUND 		= "Bunker_doorMetal_Open_SoundSet";
-	protected const string METAL_DOOR_CLOSE_SOUND 		= "Bunker_doorMetal_Close_SoundSet";
 	protected const string VENTILATION_SOUND			= "Bunker_Ventilation_SoundSet";
 	protected const string LAMPS_SOUND					= "Bunker_Lamp_Hum_SoundSet";
 	protected const string ELECTRICITY_ON_SOUND			= "Bunker_bunker_electricity_on_SoundSet";
@@ -55,12 +27,17 @@ class Land_WarheadStorage_Main : House
 	protected const string MAIN_DOOR_SELECTION1 	= "maindoor1_outer";
 	protected const string MAIN_DOOR_SELECTION2 	= "maindoor2_outer";
 	
-	protected const string COLOR_LAMP_OFF 	= "#(argb,8,8,3)color(0.5,0.5,0.5,1,co)";
-	protected const string COLOR_LAMP_ON	= "#(argb,8,8,3)color(1,0.8,0,1.0,co)";
+	protected const string COLOR_LAMP_OFF 	= "DZ\\structures_sakhal\\military\\storage\\data\\Warhead_Storage_Lamp_Glass_int.rvmat";
+	protected const string COLOR_LAMP_ON	= "DZ\\structures_sakhal\\military\\storage\\data\\Warhead_Storage_Lamp_Glass_e_int.rvmat";
+	
+	// sync
+	protected bool m_HasPower;
+	protected bool m_LeverStatesBits;
 	
 	void Land_WarheadStorage_Main()
 	{
 		RegisterNetSyncVariableBool("m_HasPower");
+		RegisterNetSyncVariableInt("m_LeverStatesBits");
 		
 		Land_WarheadStorage_PowerStation.RegisterBunker(this);
 		#ifndef SERVER
@@ -82,42 +59,38 @@ class Land_WarheadStorage_Main : House
 	protected void UpdateLamp(string selection, string color)
 	{
 		int selectionIdx = GetHiddenSelectionIndex(selection);
-		SetObjectTexture(selectionIdx, color);
+		SetObjectMaterial(selectionIdx, color);
 	}
 	
 	override void DeferredInit()
 	{
 		GetGame().RegisterNetworkStaticObject(this);
+		
+		if (GetGame().IsServer())
+		{
+			UpdateDoorStateServer();	// init closed state - code randomization? of opened state messes with doors in general
+			for (int i = 0; i < 12; i++)
+			{
+				if (IsBunkerDoor(i))
+					AutoCloseDoor(i);
+			}
+		}
 	}
-	
 	
 	void SetPowerServer(bool hasPower)
 	{
-		if (hasPower && !m_HasPower)
-			OnPowerOnServer();
-		else if(!hasPower && m_HasPower)
-			OnPowerOffServer();
 		m_HasPower = hasPower;
 		SetSynchDirty();
+	}
+	
+	void SetLeverStatesServer(int leverBits)
+	{
+		m_LeverStatesBits = leverBits;
+		SetSynchDirty();
 		
+		UpdateDoorStateServer();
 	}
 	
-	protected void OnPowerOnServer()
-	{
-		//storagedoor1_light_pos
-		for (int i; i < SOURCES_COUNT; i++)
-		{
-			UpdateLamp(LAMP_SELECTION + (i+i).ToString(), COLOR_LAMP_ON);
-		}
-	}
-	
-	protected void OnPowerOffServer()
-	{
-		for (int i; i < SOURCES_COUNT; i++)
-		{
-			UpdateLamp(LAMP_SELECTION + (i+i).ToString(), COLOR_LAMP_OFF);
-		}
-	}
 	protected void OnPowerOnClient()
 	{
 		EffectSound soundEff;
@@ -130,7 +103,7 @@ class Land_WarheadStorage_Main : House
 		
 		for (int i; i < SOURCES_COUNT; i++)
 		{
-			m_StorageDoorLights[i] = BunkerStorageDoorLight.Cast(ScriptedLightBase.CreateLightAtObjMemoryPoint(BunkerStorageDoorLight, this, "lamp" + (i+1).ToString() + "_pos"));
+			m_StorageDoorLights[i] = WarheadStorageLight.Cast(ScriptedLightBase.CreateLightAtObjMemoryPoint(WarheadStorageLight, this, "lamp" + (i+1).ToString() + "_pos"));
 			
 			PlaySoundSetAtMemoryPoint(soundEff, VENTILATION_SOUND, VENT_POS_MEMPOINT + (i+1).ToString(), true, 0.5, 0.5);
 			m_PoweredSoundEffects.Insert(soundEff);
@@ -142,16 +115,11 @@ class Land_WarheadStorage_Main : House
 	}
 	
 	protected void OnPowerOffClient()
-	{		
-		for (int i; i < SOURCES_COUNT; i++)
-		{
-			if (m_StorageDoorLights[i])
-				m_StorageDoorLights[i].Destroy();
-		}
-		
+	{				
 		foreach (EffectSound soundEff : m_PoweredSoundEffects)
 		{
-			soundEff.Stop();
+			if (soundEff)
+				soundEff.Stop();
 		}
 		
 		PlaySoundSetAtMemoryPoint(soundEff, ELECTRICITY_OFF_SOUND, VENT_MAIN_POS_MEMPOINT, false);
@@ -169,30 +137,14 @@ class Land_WarheadStorage_Main : House
 			EffectSound sound;
 			PlaySoundSetAtMemoryPoint(sound, ALARM_DOOR_OPEN_SOUND, ALARM_POS_MEMPOINT, false, 0, 0);
 			sound.SetAutodestroy(true);
-			PlaySoundSetAtMemoryPoint(sound, BIG_DOOR_OPEN_SOUND, ALARM_POS_MEMPOINT, false, 0, 0);
-			sound.SetAutodestroy(true);
 			
-			PlaySoundSetAtMemoryPoint(m_SoundDoorLoop, ALARM_DOOR_OPEN_LOOP_SOUND, ALARM_POS_MEMPOINT, true, 0, 0);
-			m_SoundDoorLoop.SetAutodestroy(true);
+			int effectID = GetBunkerEffectIndexByDoor(params.param1);
+			PlaySoundSetAtMemoryPoint(sound, ALARM_DOOR_OPEN_LOOP_SOUND, ALARM_POS_MEMPOINT, true, 0, 0);
+			m_SoundDoorLoop[effectID] = sound;
+			m_SoundDoorLoop[effectID].SetAutodestroy(true);
 		}
-		else if (IsMetalDoor(params.param1))
-		{
-			sound = SEffectManager.PlaySoundEnviroment(METAL_DOOR_OPEN_SOUND, GetDoorSoundPos(params.param1), 0, 0, false);
-			sound.SetAutodestroy(true);
-		}
-		else if (IsFenceDoor(params.param1))
-		{
-			sound = SEffectManager.PlaySoundEnviroment(FENCE_DOOR_OPEN_SOUND, GetDoorSoundPos(params.param1), 0, 0, false);
-			sound.SetAutodestroy(true);
-		}
-		else if (IsStorageDoor(params.param1))
-		{
-			sound = SEffectManager.PlaySoundEnviroment(STORAGE_DOOR_OPEN_SOUND, GetDoorSoundPos(params.param1), 0, 0, false);
-			sound.SetAutodestroy(true);
-		}
-		
 		#endif
-		
+
 		if (!IsBunkerDoor(params.param1))
 			return;
 		
@@ -209,8 +161,12 @@ class Land_WarheadStorage_Main : House
 		#ifndef SERVER
 		if (IsBunkerDoor(params.param1))
 		{
-			if (m_SoundDoorLoop.IsPlaying())
-				StopSoundSet(m_SoundDoorLoop);
+			int effectID = GetBunkerEffectIndexByDoor(params.param1);
+			if (m_SoundDoorLoop[effectID] && m_SoundDoorLoop[effectID].IsPlaying())
+			{
+				EffectSound sound = m_SoundDoorLoop[effectID];
+				StopSoundSet(sound);
+			}
 		}
 		#endif
 	}
@@ -232,26 +188,10 @@ class Land_WarheadStorage_Main : House
 		if (IsBunkerDoor(params.param1))
 		{
 			EffectSound sound;
-			PlaySoundSetAtMemoryPoint(sound, BIG_DOOR_CLOSE_SOUND, ALARM_POS_MEMPOINT, false, 0, 0);
-			sound.SetAutodestroy(true);
-			
-			PlaySoundSetAtMemoryPoint(m_SoundDoorLoop, ALARM_DOOR_OPEN_LOOP_SOUND, ALARM_POS_MEMPOINT, true, 0, 0);
-			m_SoundDoorLoop.SetAutodestroy(true);
-		}
-		else if (IsMetalDoor(params.param1))
-		{
-			sound = SEffectManager.PlaySoundEnviroment(METAL_DOOR_CLOSE_SOUND, GetDoorSoundPos(params.param1), 0, 0, false);
-			sound.SetAutodestroy(true);
-		}
-		else if (IsFenceDoor(params.param1))
-		{
-			sound = SEffectManager.PlaySoundEnviroment(FENCE_DOOR_CLOSE_SOUND, GetDoorSoundPos(params.param1), 0, 0, false);
-			sound.SetAutodestroy(true);
-		}
-		else if (IsStorageDoor(params.param1))
-		{
-			sound = SEffectManager.PlaySoundEnviroment(STORAGE_DOOR_CLOSE_SOUND, GetDoorSoundPos(params.param1), 0, 0, false);
-			sound.SetAutodestroy(true);
+			int effectID = GetBunkerEffectIndexByDoor(params.param1);
+			PlaySoundSetAtMemoryPoint(sound, ALARM_DOOR_OPEN_LOOP_SOUND, ALARM_POS_MEMPOINT, true, 0, 0);
+			m_SoundDoorLoop[effectID] = sound;
+			m_SoundDoorLoop[effectID].SetAutodestroy(true);
 		}
 		#endif
 
@@ -267,8 +207,12 @@ class Land_WarheadStorage_Main : House
 			PlaySoundSetAtMemoryPoint(sound, ALARM_DOOR_CLOSE_SOUND, ALARM_POS_MEMPOINT, false, 0, 0);
 			sound.SetAutodestroy(true);
 			
-			if (m_SoundDoorLoop.IsPlaying())
-				StopSoundSet(m_SoundDoorLoop);
+			int effectID = GetBunkerEffectIndexByDoor(params.param1);
+			if (m_SoundDoorLoop[effectID] && m_SoundDoorLoop[effectID].IsPlaying())
+			{
+				sound = m_SoundDoorLoop[effectID];
+				StopSoundSet(sound);
+			}
 		}
 		#endif
 	}
@@ -279,29 +223,58 @@ class Land_WarheadStorage_Main : House
 		RemoveDoorTimer(doorIndex);
 	}
 	
-	
-	
-	void UpdateDoorState(int leverBits)
+	void UpdateDoorStateServer()
 	{
 		for (int index = 1; index <= 4; index++)
 		{
 			int bit = 1 << (index - 1);
 			int doorIndex = GetDoorIndexByLeverIndex(index);
 			
-			if ((bit & leverBits) != 0)
+			if ( ((bit & m_LeverStatesBits) != 0) && m_HasPower )
 			{
 				if (!IsDoorOpen(doorIndex))
+				{
 					OpenDoor(doorIndex);
+					UpdateLamp(LAMP_SELECTION + (GetStorageLightIndexByDoor(doorIndex) + 1).ToString(), COLOR_LAMP_ON);
+				}
 			}
 			else
 			{
 				if (IsDoorOpen(doorIndex))
+				{
 					CloseDoor(doorIndex);
+					UpdateLamp(LAMP_SELECTION + (GetStorageLightIndexByDoor(doorIndex) + 1).ToString(), COLOR_LAMP_OFF);
+				}
 			}
-			
 		}
 	}
 	
+	void UpdateDoorStateClient()
+	{		
+		for (int index = 1; index <= 4; index++)
+		{
+			int bit = 1 << (index - 1);
+			int doorIndex = GetDoorIndexByLeverIndex(index);
+			int lightId = GetStorageLightIndexByDoor(doorIndex);
+			
+			if ( ((bit & m_LeverStatesBits) != 0) && m_HasPower )
+			{
+				if (!m_StorageDoorLights[lightId])
+					m_StorageDoorLights[lightId] = WarheadStorageLight.Cast(ScriptedLightBase.CreateLightAtObjMemoryPoint(WarheadStorageLight, this, "lamp" + (lightId + 1).ToString() + "_pos"));
+			}
+			else
+			{
+				if (m_StorageDoorLights[lightId])
+					m_StorageDoorLights[lightId].Destroy();
+			}
+		}
+	}
+	
+	protected int GetStorageLightIndexByDoor(int doorIndex)
+	{
+		return doorIndex - 8;
+	}
+		
 	protected int GetDoorIndexByLeverIndex(int LeverIndex)
 	{
 		switch (LeverIndex)
@@ -352,14 +325,9 @@ class Land_WarheadStorage_Main : House
 		return super.CanDoorBeLocked(doorIndex);
 	}
 	
-	protected bool IsMetalDoor(int doorIndex)
+	protected int GetBunkerEffectIndexByDoor(int doorIndex)
 	{
-		return (doorIndex == 0 || doorIndex == 1);
-	}
-	
-	protected bool IsFenceDoor(int doorIndex)
-	{
-		return (doorIndex == 2 || doorIndex == 3);
+		return doorIndex - 4;
 	}
 	
 	protected bool IsBunkerDoor(int doorIndex)
@@ -469,5 +437,7 @@ class Land_WarheadStorage_Main : House
 			OnPowerOffClient();
 		
 		m_HasPowerPrev = m_HasPower;
+		
+		UpdateDoorStateClient();
 	}
 }

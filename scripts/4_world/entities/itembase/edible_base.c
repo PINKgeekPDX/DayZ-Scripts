@@ -14,9 +14,10 @@ class Edible_Base : ItemBase
 	protected float m_DecayTimer;
 	protected float m_DecayDelta = 0.0;
 	protected FoodStageType m_LastDecayStage = FoodStageType.NONE;
+	protected ParticleSource 	m_HotVaporParticle;
 	
 	private CookingMethodType m_CookedByMethod;
-	
+		
 	void Edible_Base()
 	{
 		if (HasFoodStage())
@@ -45,6 +46,9 @@ class Edible_Base : ItemBase
 		super.EEDelete(parent);
 		
 		RemoveAudio();
+		
+		if (m_HotVaporParticle)
+			m_HotVaporParticle.Stop();
 	}
 	
 	override void EEItemLocationChanged(notnull InventoryLocation oldLoc, notnull InventoryLocation newLoc)
@@ -73,6 +77,9 @@ class Edible_Base : ItemBase
 		
 		if (oldLoc.IsValid())
 			ResetCookingTime();
+		
+		if (CanHaveTemperature())
+			UpdateVaporParticle();
 	}
 
 	void UpdateVisualsEx(bool forced = false)
@@ -182,6 +189,9 @@ class Edible_Base : ItemBase
 		{
 			RemoveAudio();
 		}
+		
+		if (CanHaveTemperature())
+			UpdateVaporParticle();
 	}
 
 	//================================================================
@@ -819,6 +829,46 @@ class Edible_Base : ItemBase
 					InsertAgent(eAgents.FOOD_POISON, 1);
 					m_DecayTimer = -1;
 				}
+			}
+		}
+	}
+	
+	protected void UpdateVaporParticle()
+	{
+		if (GetGame().IsDedicatedServer())
+			return;
+		
+		if (m_VarTemperature >= GameConstants.STATE_HOT_LVL_TWO && !m_HotVaporParticle)
+		{
+			InventoryLocation invLoc = new InventoryLocation();
+			GetInventory().GetCurrentInventoryLocation(invLoc);
+			if (invLoc && (invLoc.GetType() == InventoryLocationType.GROUND || invLoc.GetType() == InventoryLocationType.HANDS))
+			{
+				ParticleManager ptcMgr = ParticleManager.GetInstance();
+				if (ptcMgr)
+				{
+					m_HotVaporParticle = ParticleManager.GetInstance().PlayOnObject(ParticleList.ITEM_HOT_VAPOR, this);
+					m_HotVaporParticle.SetParticleParam(EmitorParam.SIZE, 0.3);
+					m_HotVaporParticle.SetParticleParam(EmitorParam.BIRTH_RATE, 10);
+					m_HotVaporParticle.SetParticleAutoDestroyFlags(ParticleAutoDestroyFlags.ON_STOP);
+				}
+			}
+		}	
+		else if (m_HotVaporParticle)
+		{
+			if (m_VarTemperature <= GameConstants.STATE_HOT_LVL_TWO)
+			{
+				m_HotVaporParticle.Stop();
+				m_HotVaporParticle = null;
+				return;
+			}
+			
+			InventoryLocation inventoryLoc = new InventoryLocation();
+			GetInventory().GetCurrentInventoryLocation(inventoryLoc);
+			if (invLoc && (invLoc.GetType() != InventoryLocationType.GROUND && invLoc.GetType() != InventoryLocationType.HANDS))
+			{
+				m_HotVaporParticle.Stop();
+				m_HotVaporParticle = null;
 			}
 		}
 	}

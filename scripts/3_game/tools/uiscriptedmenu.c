@@ -170,13 +170,21 @@ class UIScriptedMenu extends UIMenuPanel
 	//after show
 	void OnShow()
 	{
-		LockControls();	
+		LockControls();
+		if (IsHandlingPlayerDeathEvent() && g_Game && g_Game.GetPlayer())
+		{
+			g_Game.GetPlayer().GetOnDeathStart().Insert(OnPlayerDeath);
+		}
 	}
 
 	//after hide
 	void OnHide()
 	{
 		UnlockControls();
+		if (IsHandlingPlayerDeathEvent() && g_Game && g_Game.GetPlayer())
+		{
+			g_Game.GetPlayer().GetOnDeathStart().Remove(OnPlayerDeath);
+		}
 	}
 
 	//! Per frame update, called from engine
@@ -587,4 +595,14 @@ class UIScriptedMenu extends UIMenuPanel
 	void InitNoteRead(string text = "") {}
 	void InitMapItem(EntityAI item) {}
 	void LoadMapMarkers() {}
+	
+	bool IsHandlingPlayerDeathEvent()
+	{
+		return true;
+	}
+	
+	void OnPlayerDeath()
+	{
+		Close();
+	}
 };

@@ -202,13 +202,6 @@ class BoatScript : Boat
 			return false;
 		}
 		
-		if (IsVitalSparkPlug())
-		{
-			EntityAI item = FindAttachmentBySlotName("SparkPlug");
-			if (!item || (item && item.IsRuined()))
-				return false;
-		}
-		
 		return true;
 	}
 	
@@ -221,22 +214,27 @@ class BoatScript : Boat
 		
 		FadeEngineSound(true);
 		HandleEngineSound(EBoatEngineSoundState.START_OK);
-		m_UpdateParticles = true;
 		ClearWaterEffects(); // in case they are still active
 	}
 	
 	override void OnEngineStop()
 	{
 		super.OnEngineStop();
-
+		
 		if (GetGame().IsDedicatedServer())
 			return;
 		
 		FadeEngineSound(false);
 		HandleEngineSound(EBoatEngineSoundState.STOP_OK);
-		// if beached, stop right away
 		
-		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(StopParticleUpdate, 3000);
+		vector mat[4];
+		dBodyGetWorldTransform(this, mat);
+		vector pos = mat[3] + VectorToParent(PropellerGetPosition());
+		
+		if (GetGame().GetWaterDepth(pos) < 0) // stop instantly
+			StopParticleUpdate();
+		else
+			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(StopParticleUpdate, 3000);
 	}
 	
 	override void EEOnCECreate()
@@ -248,25 +246,49 @@ class BoatScript : Boat
 	}
 	
 	override void EOnPostSimulate(IEntity other, float timeSlice)
-	{		
+	{
 		if (GetGame().IsServer())
 		{
-			if (EngineIsOn() && GetFluidFraction(BoatFluid.FUEL) <= 0)
+			HandleByCrewMemberState(ECrewMemberState.UNCONSCIOUS);
+			HandleByCrewMemberState(ECrewMemberState.DEAD);
+			
+			if (EngineIsOn())
 			{
-				m_PlaySoundEngineStopNoFuel = true;
-				SetSynchDirty();
-				m_PlaySoundEngineStopNoFuel = false;
-				
-				EngineStop();
+				if (GetFluidFraction(BoatFluid.FUEL) <= 0)
+				{		
+					m_PlaySoundEngineStopNoFuel = true;
+					SetSynchDirty();
+					m_PlaySoundEngineStopNoFuel = false;
+					
+					EngineStop();
+				}
 			}
 			
 			CheckContactCache();
 			m_VelocityPrevTick = GetVelocity(this);
 			m_MomentumPrevTick = GetMomentum();
 		}
+		else if (EngineIsOn())
+			m_UpdateParticles = true;
 		
 		if (!GetGame().IsDedicatedServer() && m_UpdateParticles)
 			HandleBoatSplashSound();
+	}
+	
+	override void EOnSimulate(IEntity other, float timeSlice)
+	{
+		if (!IsProxy())
+		{
+			if (EngineIsOn())
+			{
+				vector mat[4];
+				dBodyGetWorldTransform(this, mat);
+				vector pos = mat[3] + VectorToParent(PropellerGetPosition());
+				
+				if (GetGame().GetWaterDepth(pos) < -0.2)
+					EngineStop();
+			}
+		}
 	}
 	
 	override void EOnFrame(IEntity other, float timeSlice)
@@ -299,6 +321,21 @@ class BoatScript : Boat
 			
 			m_ContactData = new VehicleContactData();
 			m_ContactData.SetData(extra.Position, other, momentumDelta); // change to local pos
+			
+			if (EngineIsOn() && !CheckOperationalState())
+				EngineStop();
+		}
+			
+	}
+	
+	override void EEHitBy(TotalDamageResult damageResult, int damageType, EntityAI source, int component, string dmgZone, string ammo, vector modelPos, float speedCoef)
+	{
+		super.EEHitBy(damageResult, damageType, source, component, dmgZone, ammo, modelPos, speedCoef);
+		
+		if (GetGame().IsServer())
+		{
+			if (EngineIsOn() && !CheckOperationalState())
+				EngineStop();
 		}
 	}
 		
@@ -343,6 +380,49 @@ class BoatScript : Boat
 		}
 		
 		return super.OnSound(ctrl, oldValue);
+	}
+	
+	override void HandleByCrewMemberState(ECrewMemberState state)
+	{
+		switch (state)
+		{
+			case ECrewMemberState.UNCONSCIOUS:
+				foreach (int unconsciousCrewMemberIndex : m_UnconsciousCrewMemberIndices)
+				{
+					if (unconsciousCrewMemberIndex == DayZPlayerConstants.VEHICLESEAT_DRIVER)
+						EngineStop();
+					
+					m_UnconsciousCrewMemberIndices.RemoveItem(unconsciousCrewMemberIndex);
+				}
+
+				break;
+			
+			case ECrewMemberState.DEAD:
+				foreach (int deadCrewMemberIndex : m_DeadCrewMemberIndices)
+				{
+					if (deadCrewMemberIndex == DayZPlayerConstants.VEHICLESEAT_DRIVER)
+						EngineStop();
+					
+					m_DeadCrewMemberIndices.RemoveItem(deadCrewMemberIndex);
+				}
+
+				break;
+		}
+	}
+	
+	bool CheckOperationalState()
+	{
+		if (GetHealthLevel("") >= GameConstants.STATE_RUINED || GetHealthLevel("Engine") >= GameConstants.STATE_RUINED)
+			return false;
+		
+		if (IsVitalSparkPlug())
+		{
+			EntityAI item = FindAttachmentBySlotName("SparkPlug");
+			if (!item || (item && item.IsRuined()))
+				return false;
+		}
+		
+		return true;
 	}
 	
 	// Server side event for jump out processing 
@@ -489,7 +569,7 @@ class BoatScript : Boat
 		AddAction(ActionPushBoat);
 	}
 	
-	protected void AddAction(typename actionName)
+	void AddAction(typename actionName)
 	{
 		ActionBase action = ActionManagerBase.GetAction(actionName);
 
@@ -522,7 +602,7 @@ class BoatScript : Boat
 		actionArray.Insert(action);
 	}
 	
-	protected void RemoveAction(typename actionName)
+	void RemoveAction(typename actionName)
 	{
 		PlayerBase player = PlayerBase.Cast(GetGame().GetPlayer());
 		ActionBase action = player.GetActionManager().GetAction(actionName);
@@ -556,7 +636,14 @@ class BoatScript : Boat
 		for (int i; i < 4; i++)
 		{
 			if (m_WaterEffects[i].IsPlaying())
+			{
+				if (m_WaterEffects[i].GetParticle())
+				{
+					m_WaterEffects[i].GetParticle().SetParticleParam(EmitorParam.BIRTH_RATE, 0);
+					m_WaterEffects[i].GetParticle().SetParticleParam(EmitorParam.BIRTH_RATE_RND, 0);
+				}
 				m_WaterEffects[i].Stop();
+			}
 		}
 	}
 	
@@ -615,4 +702,14 @@ class BoatScript : Boat
 	{
 		return BoatScriptMove;
 	}
+	
+	#ifdef DIAG_DEVELOPER
+	override void FixEntity()
+	{
+		super.FixEntity();
+
+		if (GetGame().IsServer())
+			Fill(BoatFluid.FUEL, GetFluidCapacity(BoatFluid.FUEL));
+	}
+	#endif
 }

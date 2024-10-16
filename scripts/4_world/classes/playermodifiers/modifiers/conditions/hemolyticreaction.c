@@ -4,7 +4,8 @@ class HemolyticReactionMdfr: ModifierBase
 	
 	override void Init()
 	{
-		m_TrackActivatedTime = true;
+		m_TrackActivatedTime 	= true;
+		m_AnalyticsStatsEnabled = true;
 		m_ID 					= eModifiers.MDF_HEMOLYTIC_REACTION;
 		m_TickIntervalInactive 	= DEFAULT_TICK_TIME_INACTIVE;
 		m_TickIntervalActive 	= DEFAULT_TICK_TIME_ACTIVE;

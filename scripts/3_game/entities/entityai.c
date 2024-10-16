@@ -620,6 +620,13 @@ class EntityAI extends Entity
 		return (!HasAnyCargo() && GetInventory().AttachmentCount() == 0);
 	}
 	
+	//! returns just the configured 'canBeSplit' bool
+	bool IsSplitable()
+	{
+		return false;
+	}
+	
+	//! returns current splitability
 	bool CanBeSplit()
 	{
 		return false;
@@ -1377,9 +1384,11 @@ class EntityAI extends Entity
 		//generic occupancy check
 		EntityAI currentAtt = GetInventory().FindAttachment(slotId);
 		bool hasInternalConflict = attachment.HasInternalExclusionConflicts(slotId);
+		set<int> diff;
+		InventoryLocation curLoc = new InventoryLocation();
 		if (currentAtt) //probably a swap or same-type swap
 		{
-			set<int> diff = attachment.GetAttachmentExclusionMaskAll(slotId);
+			diff = attachment.GetAttachmentExclusionMaskAll(slotId);
 			diff.RemoveItems(currentAtt.GetAttachmentExclusionMaskAll(slotId));
 			if (diff.Count() == 0)
 			{
@@ -1388,6 +1397,23 @@ class EntityAI extends Entity
 			else
 			{
 				return !hasInternalConflict && !IsExclusionFlagPresentRecursive(diff,slotId);
+			}
+		}
+		else if (attachment.GetInventory().GetCurrentInventoryLocation(curLoc) && curLoc.GetType() == InventoryLocationType.ATTACHMENT)
+		{
+			EntityAI rootOwner = attachment.GetHierarchyRoot();
+			if (rootOwner && rootOwner == this.GetHierarchyRoot()) //attachment within the same exclusion hierarchy context
+			{
+				diff = attachment.GetAttachmentExclusionMaskAll(slotId);
+				diff.RemoveItems(attachment.GetAttachmentExclusionMaskAll(curLoc.GetSlot()));
+				if (diff.Count() == 0)
+				{
+					return !hasInternalConflict;
+				}
+				else
+				{
+					return !hasInternalConflict && !IsExclusionFlagPresentRecursive(diff,slotId);
+				}
 			}
 		}
 		return !hasInternalConflict && !IsExclusionFlagPresentRecursive(attachment.GetAttachmentExclusionMaskAll(slotId),slotId);
@@ -2437,11 +2463,8 @@ class EntityAI extends Entity
 		}
 	}
 	
-	void HandleFreezingProgression(float deltaHeat, TemperatureData data)
+	protected void HandleFreezingProgression(float deltaHeat, TemperatureData data)
 	{
-		if (!CanFreeze())
-			return;
-		
 		float progressVal = m_FreezeThawProgress;
 		float progressDelta = 1;
 		
@@ -2575,11 +2598,11 @@ class EntityAI extends Entity
 	}
 	
 	//! override to implement desired overheat behavior on entity
-	void OnItemOverheatStart();
-	void OnItemOverheat(float deltaTime); //! note, that the deltaTime could be reverse-calculated and not totally accurate
-	void OnItemOverheatEnd();
+	protected void OnItemOverheatStart();
+	protected void OnItemOverheat(float deltaTime); //! note, that the deltaTime could be reverse-calculated and not totally accurate
+	protected void OnItemOverheatEnd();
 	
-	void HandleItemOverheating(float deltaHeat, TemperatureData data)
+	protected void HandleItemOverheating(float deltaHeat, TemperatureData data)
 	{
 		float deltaTime = 1;
 		float progressVal = m_OverheatProgress;
@@ -4412,12 +4435,15 @@ class EntityAI extends Entity
 			additionalValues.InsertSet(GetAttachmentExclusionMaskGlobal());
 			additionalValues.InsertSet(GetAttachmentExclusionMaskChildren());
 			
-			int countTarget = targetSlotValues.Count();
-			for (int i = 0; i < countTarget; i++)
+			if (additionalValues.Count() > 0)
 			{
-				if (additionalValues.Find(targetSlotValues[i]) != -1)
+				int countTarget = targetSlotValues.Count();
+				for (int i = 0; i < countTarget; i++)
 				{
-					return true;
+					if (additionalValues.Find(targetSlotValues[i]) != -1)
+					{
+						return true;
+					}
 				}
 			}
 		}

@@ -23,6 +23,7 @@ enum SymptomIDs
 	SYMPTOM_HAND_SHIVER,
 	SYMPTOM_DEAFNESS_COMPLETE,
 	SYMPTOM_HMP_SEVERE,
+	SYMPTOM_GASP,
 	LAST_INDEX
 };
 
@@ -86,6 +87,7 @@ class SymptomManager
 		RegisterSymptom(new HandShiversSymptom);
 		RegisterSymptom(new DeafnessCompleteSymptom);
 		RegisterSymptom(new HMP3Symptom);
+		RegisterSymptom(new GaspSymptom);
 	}
 	
 	int GetStorageVersion()

@@ -21,6 +21,7 @@ class HeavyMetalMdfr : ModifierBase
 		m_ID = eModifiers.MDF_HEAVYMETAL1;
 
 		m_TrackActivatedTime	= false;
+		m_AnalyticsStatsEnabled = true;
 		m_TickIntervalInactive 	= DEFAULT_TICK_TIME_INACTIVE;
 		m_TickIntervalActive 	= DEFAULT_TICK_TIME_ACTIVE;
 	}
@@ -121,6 +122,7 @@ class HeavyMetalPhase2Mdfr : HeavyMetalMdfr
 	
 	override protected void OnTick(PlayerBase player, float deltaT)
 	{
+		m_Time += deltaT;
 		
 		if (m_IsDeaf)
 		{
@@ -129,7 +131,7 @@ class HeavyMetalPhase2Mdfr : HeavyMetalMdfr
 		
 		if (m_Time >= m_NextEvent)
 		{
-			if (player.GetSingleAgentCount(eAgents.HEAVYMETAL) >= SYMPTOMFALLOFF_THRESHOLD3)
+			if (player.GetSingleAgentCount(eAgents.HEAVYMETAL) >= SYMPTOMFALLOFF_THRESHOLD1)
 			{
 				player.GetSymptomManager().QueueUpPrimarySymptom(SymptomIDs.SYMPTOM_PAIN_LIGHT);
 				m_Time = 0;

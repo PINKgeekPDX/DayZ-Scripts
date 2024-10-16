@@ -1159,6 +1159,9 @@ class DayZPlayer extends Human
 	const int 						SIMPLE_SELECTION_SHOULDER_RIFLE = 2;
 	const int 						SIMPLE_SELECTION_SHOULDER_MELEE = 3;
 	
+	//! invokers
+	protected ref ScriptInvoker		m_OnDeathStart;
+	
 	//! returns appropriate DayZPlayerType
 	proto native DayZPlayerType		GetDayZPlayerType();
 	
@@ -1375,5 +1378,19 @@ class DayZPlayer extends Human
 	}
 	
 	void OnThrowingModeChange(bool change_to_enabled){}
+	
+	ScriptInvoker GetOnDeathStart()
+	{
+		if (!m_OnDeathStart)
+			m_OnDeathStart = new ScriptInvoker();
+
+		return m_OnDeathStart;
+	}
+	
+	override void OnCommandDeathStart()
+	{
+		if (m_OnDeathStart)
+			m_OnDeathStart.Invoke(this);
+	}
 }
 

@@ -41,6 +41,7 @@ class ActionConstructor
 		actions.Insert(ActionTurnOnWhileInHands);
 		actions.Insert(ActionTurnOffWhileInHands);
 		actions.Insert(ActionPlantSeed);
+		actions.Insert(ActionAttachSeeds);
 		actions.Insert(ActionDisinfectPlantBit);
 		actions.Insert(ActionTurnOnHeatpack);
 		actions.Insert(ActionTurnOnTransmitter);	
@@ -236,8 +237,10 @@ class ActionConstructor
 		actions.Insert(ActionRepairCarPart);
 		actions.Insert(ActionRepairCarPartWithBlowtorch);
 		actions.Insert(ActionRepairCarChassis);
+		actions.Insert(ActionRepairBoatChassis);
 		actions.Insert(ActionRepairCarChassisWithBlowtorch);
 		actions.Insert(ActionRepairCarEngineWithBlowtorch);
+		actions.Insert(ActionRepairBoatEngine);
 		actions.Insert(ActionRepairShelter);
 		actions.Insert(ActionRepairItemWithBlowtorch);
 		actions.Insert(ActionLockAttachment);

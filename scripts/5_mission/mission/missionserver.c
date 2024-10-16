@@ -77,6 +77,7 @@ class MissionServer extends MissionBase
 		super.OnInit();
 		CfgGameplayHandler.LoadData();
 		PlayerSpawnHandler.LoadData();
+		CfgPlayerRestrictedAreaHandler.LoadData();
 		UndergroundAreaLoader.SpawnAllTriggerCarriers();
 		//Either pass consts in Init.c or insert all desired coords (or do both ;))
 		m_FiringPos = new array<vector>();
@@ -261,6 +262,7 @@ class MissionServer extends MissionBase
 			Class.CastTo(clientPrepareParams, params);
 			CfgGameplayHandler.SyncDataSendEx(clientPrepareParams.param1);
 			UndergroundAreaLoader.SyncDataSend(clientPrepareParams.param1);
+			CfgPlayerRestrictedAreaHandler.SyncDataSend(clientPrepareParams.param1);
 			OnClientPrepareEvent(clientPrepareParams.param1, clientPrepareParams.param2, clientPrepareParams.param3, clientPrepareParams.param4, clientPrepareParams.param5);
 			break;
 

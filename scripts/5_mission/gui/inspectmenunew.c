@@ -614,4 +614,16 @@ class InspectMenuNew extends UIScriptedMenu
 		}
 	}
 
+	override void OnPlayerDeath()
+	{
+		super.OnPlayerDeath();
+		
+		// Close inventory menu when this menu got closed by the character death event as player could be inspecting a item from the inventory
+		// in the moment he dies and the inventory menu is opened too.
+		MissionGameplay missionGameplay = MissionGameplay.Cast(g_Game.GetMission());
+		if (missionGameplay && missionGameplay.GetInventory())
+		{
+			missionGameplay.HideInventory();
+		}
+	}
 };

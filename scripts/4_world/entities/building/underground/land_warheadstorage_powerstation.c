@@ -1,13 +1,15 @@
 class Land_WarheadStorage_PowerStation : House
 {
+	protected bool m_InitBunkerState;	// if generator is running already, used for initial power setup of related bunker
 	protected static ref set<Land_WarheadStorage_Main> 	m_Bunkers;
 	protected ref Timer m_UpdateTimer;
 	protected int m_LeverStatesBits;
+	protected int m_LastActivatedLeverId;
 	protected PowerGeneratorStatic m_PowerGenerator;
 	protected bool m_IsPowerGeneratorRunning;
-	protected bool m_PlaySparksSound;
+	protected int m_PlaySparks;
 	
-	protected const string LEVERS_POS_MEMPOINT 		= "leverdown_axis";
+	protected const string LEVERS_POS_MEMPOINT 		= "leverup_axis";
 	protected const string GENERATOR_POS_MEMPOINT 	= "generator_pos";
 	
 	protected const string SWITCH_UP_SOUND 		= "Power_Station_Switch_Up_SoundSet";
@@ -16,32 +18,39 @@ class Land_WarheadStorage_PowerStation : House
 		
 	void Land_WarheadStorage_PowerStation()
 	{
-		RegisterNetSyncVariableBoolSignal("m_PlaySparksSound");
+		m_PlaySparks = 0;
+		
+		RegisterNetSyncVariableInt("m_PlaySparks", 0, 4);
 	}
 	
 	override void DeferredInit()
 	{
 		if (GetGame().IsServer())
 			LinkPowerGeneratorServer();
+		
+		GetGame().RegisterNetworkStaticObject(this);
 	}
 	
 	override void OnVariablesSynchronized()
 	{
 		super.OnVariablesSynchronized();
 				
-		if (m_PlaySparksSound)
+		if (m_PlaySparks != 0)
 		{
 			EffectSound sound;
-			sound =	SEffectManager.PlaySoundCachedParams(SPARKLES_SOUND, GetPowerGeneratorSpawnPos());
+			string mempoint = "lever" + m_PlaySparks.ToString() + "_sparks_pos";
+			sound =	SEffectManager.PlaySoundCachedParams(SPARKLES_SOUND, ModelToWorld(GetMemoryPointPos(mempoint)));
 			sound.SetAutodestroy(true);
 			
-			m_PlaySparksSound = false;
+			ParticleManager.GetInstance().PlayInWorld(ParticleList.LEVER_SPARKS, ModelToWorld(GetMemoryPointPos(mempoint)));
+			
+			m_PlaySparks = 0;
 		}
 	}
 	
 	vector GetPowerGeneratorSpawnPos()
 	{
-		vector generatorPosLocal = GetMemoryPointPos("generator_pos");
+		vector generatorPosLocal = GetMemoryPointPos(GENERATOR_POS_MEMPOINT);
 		return ModelToWorld(generatorPosLocal);
 	}
 
@@ -79,9 +88,7 @@ class Land_WarheadStorage_PowerStation : House
 				
 		if (!GetGame().IsServer())
 			return;
-		
-		GetGame().RegisterNetworkStaticObject(this);
-		
+
 		StartTimer();
 		
 		float animPhase = state;
@@ -148,11 +155,16 @@ class Land_WarheadStorage_PowerStation : House
 					// in the bitmask, this lever is set as OFF, but the anim phase is saying it should be ON, turn the bit on
 					m_LeverStatesBits = m_LeverStatesBits | bit;
 					updated = true;
+					
+					m_LastActivatedLeverId = index;
 				}
 			}
 		}
 		if (updated)
+		{
 			OnLeverToggled();
+			UpdateLeverStatesServer();
+		}
 		
 		CheckStopTimer();	
 	}
@@ -165,17 +177,19 @@ class Land_WarheadStorage_PowerStation : House
 			//doors are being opened/closed only when we are opening/closing a single door, or when none of the doors are supposed to be open
 			//so here, we only force all levers to OFF, and that in turn will make the doors to be closed later on
 			
-			if (leversActivatedCount > 1)
+			if (leversActivatedCount > 1 && m_PlaySparks == 0)
 			{
-				m_PlaySparksSound = true;
+				m_PlaySparks = m_LastActivatedLeverId;
 				SetSynchDirty();
 			}
 			
+			if (m_IsPowerGeneratorRunning)
+			{
+				m_PowerGenerator.GetCompEM().SwitchOff();
+				m_PowerGenerator.GetCompEM().InteractBranch(m_PowerGenerator);
+			}
+			
 			TurnAllLeversOff();
-		}
-		else
-		{
-			UpdateDoorsRemotely();
 		}
 	}
 	
@@ -225,17 +239,14 @@ class Land_WarheadStorage_PowerStation : House
 		}
 		return 0;
 	}
-	
-	
-	
-	protected void UpdateDoorsRemotely()
+		
+	protected void UpdateLeverStatesServer()
 	{
 		Land_WarheadStorage_Main closestBunker = GetClosestBunker();
-
 		if (!closestBunker)
 			return;
 		
-		closestBunker.UpdateDoorState(m_LeverStatesBits);
+		closestBunker.SetLeverStatesServer(m_LeverStatesBits);
 	}
 	
 	void OnGeneratorStart()
@@ -245,9 +256,11 @@ class Land_WarheadStorage_PowerStation : House
 			m_IsPowerGeneratorRunning = true;
 			
 			Land_WarheadStorage_Main closestBunker = GetClosestBunker();
-	
 			if (closestBunker)
 				closestBunker.SetPowerServer(true);
+			
+			m_PlaySparks = 0;
+			SetSynchDirty();
 		}
 	}
 	
@@ -301,6 +314,15 @@ class Land_WarheadStorage_PowerStation : House
 				smallestDist =dist;
 			}
 		}
+		
+		if (!m_InitBunkerState)
+		{
+			m_InitBunkerState = true;
+			
+			if (GetGame().IsServer() && m_PowerGenerator && m_PowerGenerator.GetCompEM().IsWorking())
+				closestBunker.SetPowerServer(true);
+		}
+		
 		return closestBunker;
 	}
 	

@@ -40,7 +40,7 @@ class DayZPlayerImplementJumpClimb
 		
 		SHumanCommandClimbResult climbRes = new SHumanCommandClimbResult();
 		
-		HumanCommandClimb.DoClimbTest(m_Player, climbRes, 0);
+		HumanCommandClimb.DoPerformClimbTest(m_Player, climbRes, 0);
 		if (climbRes.m_bIsClimb || climbRes.m_bIsClimbOver)
 		{
 			int climbType = GetClimbType(climbRes.m_fClimbHeight);
@@ -91,7 +91,7 @@ class DayZPlayerImplementJumpClimb
 	private void Jump()
 	{
 		m_bIsJumpInProgress = true;
-		m_Player.SetFallYDiff(m_Player.GetPosition()[1]);
+		m_Player.SetFallYDiff(m_Player.PhysicsGetPositionWS()[1]);
 
 		m_Player.OnJumpStart();
 		m_Player.StartCommand_Fall(2.6);

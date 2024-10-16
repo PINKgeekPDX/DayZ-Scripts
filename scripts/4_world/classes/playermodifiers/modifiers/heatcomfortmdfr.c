@@ -52,7 +52,7 @@ class HeatComfortMdfr: ModifierBase
 			{
 				value_normalized = Math.Lerp(PlayerConstants.WATER_LOSS_THRESHOLD_HC_PLUS_HIGH, 1.0, heat_comfort);
 				value_normalized = Math.Clamp(value_normalized, 0, 1);
-				health_loss = deltaT * Math.Lerp(PlayerConstants.HEALTH_LOSS_HC_PLUS_LOW, PlayerConstants.HEALTH_LOSS_HC_PLUS_HIGH, value_normalized);
+				health_loss = deltaT * Math.Lerp(PlayerConstants.HEALTH_LOSS_HC_PLUS_LOW, PlayerConstants.HEALTH_LOSS_HC_PLUS_HIGH, Easing.EaseInQuad(value_normalized));
 			}
 		}
 		if( heat_comfort < PlayerConstants.ENERGY_LOSS_THRESHOLD_HC_MINUS_LOW )
@@ -66,7 +66,7 @@ class HeatComfortMdfr: ModifierBase
 			{
 				value_normalized = Math.InverseLerp(PlayerConstants.ENERGY_LOSS_THRESHOLD_HC_MINUS_HIGH, -1.0, heat_comfort);
 				value_normalized = Math.Clamp(value_normalized, 0, 1);
-				health_loss = deltaT * Math.Lerp(PlayerConstants.HEALTH_LOSS_HC_MINUS_LOW, PlayerConstants.HEALTH_LOSS_HC_MINUS_HIGH, value_normalized);
+				health_loss = deltaT * Math.Lerp(PlayerConstants.HEALTH_LOSS_HC_MINUS_LOW, PlayerConstants.HEALTH_LOSS_HC_MINUS_HIGH, Easing.EaseInQuad(value_normalized));
 			}
 		}
 

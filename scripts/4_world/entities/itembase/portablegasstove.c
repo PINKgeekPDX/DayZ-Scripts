@@ -72,11 +72,12 @@ class PortableGasStove extends ItemBase
  			m_UTSSettings 						= new UniversalTemperatureSourceSettings();
 			m_UTSSettings.m_ManualUpdate		= true;
 			m_UTSSettings.m_TemperatureMin		= 0;
-			m_UTSSettings.m_TemperatureMax		= 600;
+			m_UTSSettings.m_TemperatureMax		= 400;
 			m_UTSSettings.m_TemperatureItemCap 	= GameConstants.ITEM_TEMPERATURE_NEUTRAL_ZONE_MIDDLE;
-			m_UTSSettings.m_TemperatureCap		= 5;
-			m_UTSSettings.m_RangeFull			= 1;
-			m_UTSSettings.m_RangeMax			= 2;
+			m_UTSSettings.m_TemperatureCap		= 0;
+			m_UTSSettings.m_RangeFull			= 0;
+			m_UTSSettings.m_RangeMax			= 0;
+			m_UTSSettings.m_IsWorldOverriden	= false;
 			
 			m_UTSLConst							= new UniversalTemperatureSourceLambdaConstant();
 			m_UTSource							= new UniversalTemperatureSource(this, m_UTSSettings, m_UTSLConst);

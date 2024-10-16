@@ -138,7 +138,6 @@ class ItemBase extends InventoryItem
 	
 	//temperature
 	private float 				m_TemperaturePerQuantityWeight;
-	protected ParticleSource 	m_HotVaporParticle;
 	
 	// -------------------------------------------------------------------------
 	void ItemBase()
@@ -1187,9 +1186,6 @@ class ItemBase extends InventoryItem
 				m_OldLocation.Reset();
 			}
 		}
-		
-		if (CanHaveTemperature())
-			UpdateVaporParticle();
 	}
 	
 	override void EOnContact(IEntity other, Contact extra)
@@ -1365,9 +1361,6 @@ class ItemBase extends InventoryItem
 				player.RemoveQuickBarEntityShortcut(this);
 			}
 		}
-		
-		if (m_HotVaporParticle)
-			m_HotVaporParticle.Stop();
 	}
 	// -------------------------------------------------------------------------------
 	override void EEKilled(Object killer)
@@ -1590,11 +1583,15 @@ class ItemBase extends InventoryItem
 		return false;
 	}
 	
+	override bool IsSplitable()
+	{
+		return m_CanThisBeSplit;
+	}
 	//----------------
 	override bool CanBeSplit()
 	{
-		if (m_CanThisBeSplit)
-			return (GetQuantity() > 1);
+		if (IsSplitable() && (GetQuantity() > 1))
+			return GetInventory().CanRemoveEntity();
 		
 		return false;
 	}
@@ -3173,7 +3170,7 @@ class ItemBase extends InventoryItem
 		{	
 			#ifdef PLATFORM_CONSOLE
 			//bruteforce it is
-			if (m_CanThisBeSplit)
+			if (IsSplitable())
 			{
 				UIScriptedMenu menu = GetGame().GetUIManager().FindMenu(MENU_INVENTORY);
 				if (menu)
@@ -3215,10 +3212,7 @@ class ItemBase extends InventoryItem
 			OnWetChanged(m_VarWet,m_VarWetPrev);
 			m_VarWetPrev = m_VarWet;
 		}
-		
-		if (CanHaveTemperature())
-			UpdateVaporParticle();
-	
+			
 		super.OnVariablesSynchronized();
 	}
 
@@ -3327,35 +3321,29 @@ class ItemBase extends InventoryItem
 	//----------------------------------------------------------------
 	override int GetQuantityMax()
 	{
-		float max = 0;
-		
-		InventoryLocation il = new InventoryLocation;
+		int slot = -1;
 		if (GetInventory())
+		{
+			InventoryLocation il = new InventoryLocation;
 			GetInventory().GetCurrentInventoryLocation(il);
+			slot = il.GetSlot();
+		}
 		
-		int slot = il.GetSlot();
-		
-		if (slot != -1)
-			max = InventorySlots.GetStackMaxForSlotId(slot);
-		
-		if (max <= 0)
-			max = m_VarStackMax;
-		
-		if (max <= 0)
-			max = m_VarQuantityMax;
-		
-		return max;
+		return GetTargetQuantityMax(slot);
 	}
 	
 	override int GetTargetQuantityMax(int attSlotID = -1)
 	{
 		float quantity_max = 0;
 		
-		if (attSlotID != -1)
-			quantity_max = InventorySlots.GetStackMaxForSlotId(attSlotID);
-		
-		if (quantity_max <= 0)
-			quantity_max = m_VarStackMax;
+		if (IsSplitable()) //only stackable/splitable items can check for stack size
+		{
+			if (attSlotID != -1)
+				quantity_max = InventorySlots.GetStackMaxForSlotId(attSlotID);
+			
+			if (quantity_max <= 0)
+				quantity_max = m_VarStackMax;
+		}
 		
 		if (quantity_max <= 0)
 			quantity_max = m_VarQuantityMax;
@@ -3406,7 +3394,7 @@ class ItemBase extends InventoryItem
 	
 	override protected float GetWeightSpecialized(bool forceRecalc = false)
 	{
-		if (m_CanThisBeSplit) //quantity determines size of the stack
+		if (IsSplitable()) //quantity determines size of the stack
 		{
 			#ifdef DEVELOPER
 			if (WeightDebug.m_VerbosityFlags & WeightDebugType.RECALC_FORCED)
@@ -3469,7 +3457,7 @@ class ItemBase extends InventoryItem
 		float wetness = 1;
 		if (include_wetness)
 			wetness += GetWet();
-		if (m_CanThisBeSplit) //quantity determines size of the stack
+		if (IsSplitable()) //quantity determines size of the stack
 		{
 			weight = wetness * m_ConfigWeight;
 		}
@@ -3780,7 +3768,7 @@ class ItemBase extends InventoryItem
 	protected void OnLiquidTypeChanged(int oldType, int newType)
 	{
 		if (newType == LIQUID_NONE && GetIsFrozen())
-			SetFrozen(false);//CanFreeze() ????
+			SetFrozen(false);
 	}
 
 	//! To be called on moving item within character's inventory; 'player' should never be null
@@ -4280,6 +4268,12 @@ class ItemBase extends InventoryItem
 	{
 		return m_IsTakeable;
 	}
+	
+	// For cases where we want to show object widget which cant be taken to hands
+	bool IsActionTargetVisible()
+	{
+		return false;
+	}
 
 	//! Attachment Sound Type getting from config file
 	protected void PreLoadSoundAttachmentType()
@@ -4730,46 +4724,6 @@ class ItemBase extends InventoryItem
 			return true;
 		}
 		return false;
-	}
-	
-	protected void UpdateVaporParticle()
-	{
-		if (GetGame().IsDedicatedServer())
-			return;
-		
-		if (m_VarTemperature >= GameConstants.STATE_HOT_LVL_TWO && !m_HotVaporParticle)
-		{
-			InventoryLocation invLoc = new InventoryLocation();
-			GetInventory().GetCurrentInventoryLocation(invLoc);
-			if (invLoc && (invLoc.GetType() == InventoryLocationType.GROUND || invLoc.GetType() == InventoryLocationType.HANDS))
-			{
-				ParticleManager ptcMgr = ParticleManager.GetInstance();
-				if (ptcMgr)
-				{
-					m_HotVaporParticle = ParticleManager.GetInstance().PlayOnObject(ParticleList.COOKING_BOILING_EMPTY, this);
-					m_HotVaporParticle.SetParticleParam(EmitorParam.SIZE, 0.3);
-					m_HotVaporParticle.SetParticleParam(EmitorParam.BIRTH_RATE, 10);
-					m_HotVaporParticle.SetParticleAutoDestroyFlags(ParticleAutoDestroyFlags.ON_STOP);
-				}
-			}
-		}	
-		else if (m_HotVaporParticle)
-		{
-			if (m_VarTemperature <= GameConstants.STATE_HOT_LVL_TWO)
-			{
-				m_HotVaporParticle.Stop();
-				m_HotVaporParticle = null;
-				return;
-			}
-			
-			InventoryLocation inventoryLoc = new InventoryLocation();
-			GetInventory().GetCurrentInventoryLocation(inventoryLoc);
-			if (invLoc && (invLoc.GetType() != InventoryLocationType.GROUND && invLoc.GetType() != InventoryLocationType.HANDS))
-			{
-				m_HotVaporParticle.Stop();
-				m_HotVaporParticle = null;
-			}
-		}
 	}
 	
 	//! generic effectivity as a bait for animal catching

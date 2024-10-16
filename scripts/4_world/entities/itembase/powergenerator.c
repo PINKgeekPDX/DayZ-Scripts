@@ -75,6 +75,16 @@ class PowerGeneratorBase extends ItemBase
 		return LIQUID_THROUGHPUT_GENERATOR;
 	}
 	
+	protected vector GetSmokeParticlePosition()
+	{
+		return "0.3 0.21 0.4";
+	}
+	
+	protected vector GetSmokeParticleOrientation()
+	{
+		return "270 0 0";
+	}
+	
 	// Play the loop sound
 	void StartLoopSound()
 	{
@@ -85,10 +95,8 @@ class PowerGeneratorBase extends ItemBase
 				PlaySoundSetLoop(m_EngineLoop, LOOP_SOUND, 0, 0);
 				
 				// Particle
-				vector local_pos = "0.3 0.21 0.4";
-				vector local_ori = "270 0 0";
 				m_Smoke = new EffGeneratorSmoke();
-				SEffectManager.PlayOnObject(m_Smoke, this, local_pos, local_ori);
+				SEffectManager.PlayOnObject(m_Smoke, this, GetSmokeParticlePosition(), GetSmokeParticleOrientation());
 			}
 		}
 	}

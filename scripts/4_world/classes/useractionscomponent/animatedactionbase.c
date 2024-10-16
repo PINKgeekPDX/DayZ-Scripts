@@ -15,6 +15,14 @@ class ActionBaseCB : HumanCommandActionCallback
 		return m_ActionData.m_PossibleStanceMask;
 	}
 	
+	override void OnAnimationEvent(int pEventID)	
+	{
+		if ( m_ActionData )
+		{
+			m_ActionData.m_DelayedAnimationEventID = pEventID;
+		}
+	}
+
 	//Command events
 	override void OnFinish(bool pCanceled)	
 	{
@@ -175,27 +183,48 @@ class AnimatedActionBase : ActionBase
 	//TODO MW - add comment 
 	void OnAnimationEvent( ActionData action_data )
 	{
-		if (action_data && !action_data.m_WasExecuted)
+		if (action_data.m_DelayedAnimationEventID == UA_ANIM_EVENT)
 		{
-			ActionBase action = action_data.m_Action;
-			
-			if (action && ( !action.UseMainItem() || action_data.m_MainItem ) && ( !action.HasTarget() || action_data.m_Target ))
+			if (action_data && !action_data.m_WasExecuted)
 			{
-				if ( LogManager.IsActionLogEnable() )
-				{
-					Debug.ActionLog("Time stamp: " + action_data.m_Player.GetSimulationTimeStamp(), this.ToString() , "n/a", "OnExecute", action_data.m_Player.ToString() );
+				ActionBase action = action_data.m_Action;
+				
+				if (action && ( !action.UseMainItem() || action_data.m_MainItem ) && ( !action.HasTarget() || action_data.m_Target ))
+				{	
+					OnExecute(action_data);
+				
+					if (GetGame().IsServer())
+						OnExecuteServer(action_data);
+					else
+						OnExecuteClient(action_data);
+	
+					action_data.m_WasExecuted = true;
+					action_data.m_WasActionStarted  = true;
 				}
-				OnExecute(action_data);
-			
-				if (GetGame().IsServer())
-					OnExecuteServer(action_data);
-				else
-					OnExecuteClient(action_data);
-
-				action_data.m_WasExecuted = true;
-				action_data.m_WasActionStarted  = true;
 			}
 		}
+	}
+	
+	void CheckAnimationEvent(ActionData action_data)
+	{
+		if (action_data.m_DelayedAnimationEventID != UA_NONE)
+		{
+			#ifdef ENABLE_LOGGING
+			if ( LogManager.IsActionLogEnable() )
+			{
+				if (action_data)
+					Debug.ActionLog("STS: " + action_data.m_Player.GetSimulationTimeStamp() + " Event: " + action_data.m_DelayedAnimationEventID, action_data.m_Action.ToString() , "n/a", "OnAnimationEvent", action_data.m_Player.ToString() );
+			}
+			#endif
+			OnAnimationEvent(action_data);
+			action_data.m_DelayedAnimationEventID = UA_NONE;
+		}
+	}
+	
+	override void OnUpdate(ActionData action_data)
+	{
+		super.OnUpdate(action_data);
+		CheckAnimationEvent(action_data);
 	}
 		
 	override bool ActionConditionContinue( ActionData action_data ) //condition for action

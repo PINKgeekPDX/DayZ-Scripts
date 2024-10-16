@@ -18,6 +18,7 @@ class ContaminationStage2Mdfr: ModifierBase
 	
 	override void Init()
 	{
+		m_AnalyticsStatsEnabled = true;
 		m_ID 					= eModifiers.MDF_CONTAMINATION2;
 		m_TickIntervalInactive 	= DEFAULT_TICK_TIME_INACTIVE;
 		m_TickIntervalActive 	= DEFAULT_TICK_TIME_ACTIVE;

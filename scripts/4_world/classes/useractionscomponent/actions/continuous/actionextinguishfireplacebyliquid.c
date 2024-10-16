@@ -38,7 +38,10 @@ class ActionExtinguishFireplaceByLiquid : ActionContinuousBase
 			
 			if (fireplace.CanExtinguishFire() && !item.IsDamageDestroyed() && (item.GetLiquidType() & (GROUP_LIQUID_BLOOD | LIQUID_WATER | LIQUID_BEER)))
 			{
-				return true;
+				if (!item.GetIsFrozen())
+				{
+					return true;
+				}
 			}
 		}
 		

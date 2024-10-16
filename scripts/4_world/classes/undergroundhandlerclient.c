@@ -80,96 +80,212 @@ class UndergroundHandlerClient
 	
 	protected void CalculateEyeAccoTarget()
 	{
-		if (m_TransitionalTrigger && m_TransitionalTrigger.m_Data.Breadcrumbs.Count() >= 2)
+		if (!m_TransitionalTrigger)
+			return;
+		
+ 		if (m_TransitionalTrigger.m_Data.UseLinePointFade && m_TransitionalTrigger.m_Data.Breadcrumbs.Count() >= 2)
 		{
-			float closestDist = float.MAX;
-			float acco;
-			array<float> distances = new array<float>();
-			array<float> distancesInverted = new array<float>();
+			CalculateLinePointFade();
+		}
+		else if (m_TransitionalTrigger.m_Data.Breadcrumbs.Count() >= 2)
+		{
+			CalculateBreadCrumbs();
+		}
+	}
+	
+	protected void CalculateBreadCrumbs()
+	{
+		float closestDist = float.MAX;
+		array<float> distances = new array<float>();
+		array<float> distancesInverted = new array<float>();
 
+		int excludeMask = 0;
+		foreach (int indx, auto crumb:m_TransitionalTrigger.m_Data.Breadcrumbs)
+		{
+			if (indx > 32)//error handling for exceeding this limit is handled elsewhere
+				break;
 			
-			int excludeMask = 0;
-			foreach (int indx, auto crumb:m_TransitionalTrigger.m_Data.Breadcrumbs)
+			float dist = vector.Distance(m_Player.GetPosition(), crumb.GetPosition());
+			float crumbRadius = m_TransitionalTrigger.m_Data.Breadcrumbs[indx].Radius;
+			float maxRadiusAllowed = DISTANCE_CUTOFF;
+			
+			if (crumbRadius != -1)
+				maxRadiusAllowed = crumbRadius;
+			if (dist > maxRadiusAllowed)
+				excludeMask = (excludeMask | (1 << indx));
+			else if (m_TransitionalTrigger.m_Data.Breadcrumbs[indx].UseRaycast)
 			{
-				if (indx > 32)//error handling for exceeding this limit is handled elsewhere
-					break;
-				
-				float dist = vector.Distance(m_Player.GetPosition(), crumb.GetPosition());
-				float crumbRadius = m_TransitionalTrigger.m_Data.Breadcrumbs[indx].Radius;
-				float maxRadiusAllowed = DISTANCE_CUTOFF;
-				
-				if (crumbRadius != -1)
-				{
-					maxRadiusAllowed = crumbRadius;
-				}
-				if (dist > maxRadiusAllowed)
+				int idx = m_Player.GetBoneIndexByName("Head");
+				vector rayStart = m_Player.GetBonePositionWS(idx);
+				vector rayEnd = crumb.GetPosition();
+				vector hitPos, hitNormal;
+				float hitFraction;
+				Object hitObj;
+
+				if (DayZPhysics.RayCastBullet(rayStart, rayEnd,PhxInteractionLayers.TERRAIN | PhxInteractionLayers.ROADWAY| PhxInteractionLayers.BUILDING, null, hitObj, hitPos, hitNormal, hitFraction))
 				{
 					excludeMask = (excludeMask | (1 << indx));
 				}
-				else if (m_TransitionalTrigger.m_Data.Breadcrumbs[indx].UseRaycast)
-				{
-					int idx = m_Player.GetBoneIndexByName("Head");
-					vector rayStart = m_Player.GetBonePositionWS(idx);
-					vector rayEnd = crumb.GetPosition();
-					vector hitPos, hitNormal;
-					float hitFraction;
-					Object hitObj;
+			}
+			
+			distances.Insert(dist);
+			
+			#ifdef DIAG_DEVELOPER
+			if ( DiagMenu.GetBool(DiagMenuIDs.UNDERGROUND_SHOW_BREADCRUMB) )
+				Debug.DrawSphere(crumb.GetPosition(),0.1, COLOR_RED, ShapeFlags.ONCE);
+			#endif
+		}
+		
+		float baseDst = distances[0];
+		float sum = 0;
 
-					if (DayZPhysics.RayCastBullet(rayStart, rayEnd,PhxInteractionLayers.TERRAIN | PhxInteractionLayers.ROADWAY| PhxInteractionLayers.BUILDING, null, hitObj, hitPos, hitNormal, hitFraction))
-					{
-						excludeMask = (excludeMask | (1 << indx));
-					}
-				}
-				
-				distances.Insert(dist);
-				
+		foreach (float dst:distances)
+		{
+			if (dst == 0) 
+				dst = 0.1;
+			float dstInv = (baseDst / dst) * baseDst;
+			sum += dstInv;
+			distancesInverted.Insert(dstInv);
+		}
+		
+		float sumCheck = 0;
+		float eyeAcco = 0;
+		foreach (int i, float dstInvert:distancesInverted)
+		{
+			if ((1 << i) & excludeMask)
+				continue;
+			
+			float ratio = dstInvert / sum;
+			if (ratio > MAX_RATIO)
+				ratio = MAX_RATIO;
+			
+			if (ratio > RATIO_CUTOFF)
+			{
 				#ifdef DIAG_DEVELOPER
-				if ( DiagMenu.GetBool(DiagMenuIDs.UNDERGROUND_SHOW_BREADCRUMB) )
+				if (DiagMenu.GetBool(DiagMenuIDs.UNDERGROUND_SHOW_BREADCRUMB) )
 				{
-					Debug.DrawSphere(crumb.GetPosition(),0.1, COLOR_RED, ShapeFlags.ONCE);
+					float intensity = (1-ratio) * 255;
+					Debug.DrawLine(GetGame().GetPlayer().GetPosition() + "0 1 0", m_TransitionalTrigger.m_Data.Breadcrumbs[i].GetPosition(),ARGB(0,255,intensity,intensity),ShapeFlags.ONCE);
 				}
 				#endif
+				
+				eyeAcco += ratio * m_TransitionalTrigger.m_Data.Breadcrumbs[i].EyeAccommodation;
 			}
-			float baseDst = distances[0];
-			float sum = 0;
-			//Print(excludeMask);
-			foreach (float dst:distances)
-			{
-				if (dst == 0) 
-					dst = 0.1;
-				float dstInv = (baseDst / dst) * baseDst;
-				sum += dstInv;
-				distancesInverted.Insert(dstInv);
-			}
-			float sumCheck = 0;
-			float eyeAcco = 0;
-			foreach (int i, float dstInvert:distancesInverted)
-			{
-				/*
-				//Print(m_TransitionalTrigger.m_Data.Breadcrumbs[i].EyeAccommodation);
-				//Print(m_TransitionalTrigger.m_Data.Breadcrumbs.Count());
-				*/
-				if ((1 << i) & excludeMask)
-					continue;
-				float ratio = dstInvert / sum;
-				if (ratio > MAX_RATIO)
-					ratio = MAX_RATIO;
-				if (ratio > RATIO_CUTOFF)
-				{
-					#ifdef DIAG_DEVELOPER
-					if (DiagMenu.GetBool(DiagMenuIDs.UNDERGROUND_SHOW_BREADCRUMB) )
-					{
-						float intensity = (1-ratio) * 255;
-						Debug.DrawLine(GetGame().GetPlayer().GetPosition() + "0 1 0", m_TransitionalTrigger.m_Data.Breadcrumbs[i].GetPosition(),ARGB(0,255,intensity,intensity),ShapeFlags.ONCE);
-					}
-					#endif
-					eyeAcco += ratio * m_TransitionalTrigger.m_Data.Breadcrumbs[i].EyeAccommodation;
-					
-				}
-
-			}
-			m_EyeAccoTarget = eyeAcco * ACCO_MODIFIER;
 		}
+		
+		m_EyeAccoTarget = eyeAcco * ACCO_MODIFIER;
+	}
+		
+	protected void CalculateLinePointFade()
+	{
+		array<ref JsonUndergroundAreaBreadcrumb> points = m_TransitionalTrigger.m_Data.Breadcrumbs;
+		JsonUndergroundAreaBreadcrumb startPoint = points[0];
+		JsonUndergroundAreaBreadcrumb endPoint = points[points.Count() - 1];
+		vector playerPos = m_Player.GetPosition();
+		
+		bool forceAcco;
+		float acco;
+		float accoMax = m_TransitionalTrigger.m_Data.Breadcrumbs[0].EyeAccommodation;
+		float accoMin = endPoint.EyeAccommodation;
+		JsonUndergroundAreaBreadcrumb closestPoint;
+		JsonUndergroundAreaBreadcrumb secondaryPoint;
+		float distanceToClosest;
+		float distanceToSecondary;
+		float distanceBetweenPoints;
+		
+		foreach (JsonUndergroundAreaBreadcrumb point : points) //identify closest segment
+		{
+			float dist = vector.DistanceSq(playerPos, point.GetPosition());
+			if (!closestPoint || dist < distanceToClosest)
+			{
+				if (closestPoint)
+				{
+					secondaryPoint = closestPoint;
+					distanceToSecondary = distanceToClosest;
+				}
+				closestPoint = point;
+				distanceToClosest = dist;
+			}
+			else if (!secondaryPoint || dist < secondaryPoint)
+			{
+				secondaryPoint = point;
+				distanceToSecondary = dist;
+			}
+			
+			#ifdef DIAG_DEVELOPER
+			if (DiagMenu.GetBool(DiagMenuIDs.UNDERGROUND_SHOW_BREADCRUMB))
+				Debug.DrawSphere(point.GetPosition(),0.1, COLOR_RED, ShapeFlags.ONCE);
+			#endif
+		}
+		
+		distanceBetweenPoints = vector.DistanceSq(closestPoint.GetPosition(), secondaryPoint.GetPosition());
+
+		if (closestPoint == startPoint && secondaryPoint == points[1] && distanceToSecondary > distanceBetweenPoints) // before first point, do nothing
+			acco = accoMax;
+		else if (closestPoint == endPoint && secondaryPoint == points[points.Count() - 2] && distanceToSecondary > distanceBetweenPoints) // past second point, do nothing
+			acco = accoMin;
+		else // between the two points, lerp
+		{
+			if (closestPoint == endPoint)
+				secondaryPoint = points[points.Count() - 2];
+			else if (closestPoint == startPoint)
+				secondaryPoint = points[1];
+			else if (distanceBetweenPoints < distanceToClosest || distanceBetweenPoints < distanceToSecondary)
+			{
+				JsonUndergroundAreaBreadcrumb nexPoint = points[points.Find(closestPoint) + 1];
+				if (vector.DistanceSq(playerPos, nexPoint.GetPosition()) < vector.DistanceSq(closestPoint.GetPosition(), nexPoint.GetPosition()))
+					secondaryPoint = nexPoint;
+				else 
+				{
+					acco = closestPoint.EyeAccommodation;
+					forceAcco = true;
+				}
+			}
+				
+			if (!forceAcco)
+			{
+				distanceToSecondary = vector.DistanceSq(playerPos, secondaryPoint.GetPosition());
+				
+				acco = distanceToSecondary / (distanceToClosest + distanceToSecondary); // progress
+				acco = Math.Lerp(secondaryPoint.EyeAccommodation, closestPoint.EyeAccommodation, acco);
+				
+				if (points.Find(closestPoint) > points.Find(secondaryPoint))
+					m_LightingLerpTarget = closestPoint.LightLerp;
+				else 
+					m_LightingLerpTarget = secondaryPoint.LightLerp;
+				
+			}
+		}
+		
+		m_EyeAccoTarget = acco * ACCO_MODIFIER;
+		
+		if (m_LightingLerpTarget != m_LightingLerp && (!m_AnimTimerLightBlend || !m_AnimTimerLightBlend.IsRunning()))
+		{
+			if (m_LightingLerpTarget == 1)
+			{
+				m_AnimTimerLightBlend = new AnimationTimer();
+				m_AnimTimerLightBlend.Run(1, this, "OnUpdateTimerIn", "OnUpdateTimerEnd",0, false, LIGHT_BLEND_SPEED_IN);
+			}
+			else 
+			{
+				m_AnimTimerLightBlend = new AnimationTimer();
+				m_AnimTimerLightBlend.Run(0, this, "OnUpdateTimerOut", "OnUpdateTimerEnd",m_LightingLerp, false, LIGHT_BLEND_SPEED_OUT);
+			}
+		}
+		
+		#ifdef DIAG_DEVELOPER
+			if (DiagMenu.GetBool(DiagMenuIDs.UNDERGROUND_SHOW_BREADCRUMB))
+			{
+				Debug.DrawLine(m_Player.GetPosition() + "0 1 0", closestPoint.GetPosition(), COLOR_YELLOW, ShapeFlags.ONCE);
+				if (acco != accoMin && acco != accoMax)
+					Debug.DrawLine(closestPoint.GetPosition(), secondaryPoint.GetPosition(), COLOR_RED, ShapeFlags.ONCE);
+			
+				DbgUI.Begin(String("Underground Areas"), 20, 20);
+				DbgUI.Text(String("Closest point id: " + points.Find(closestPoint)));
+				DbgUI.Text(String("Second closest id: " + points.Find(secondaryPoint)));
+				DbgUI.End();
+			}
+		#endif
 	}
 	
 	protected void ProcessEyeAcco(float timeSlice)

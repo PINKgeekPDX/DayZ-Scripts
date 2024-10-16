@@ -20,7 +20,8 @@ class AreaExposureMdfr: ModifierBase
 	
 	override void Init()
 	{
-		m_TrackActivatedTime = false;
+		m_TrackActivatedTime 	= false;
+		m_AnalyticsStatsEnabled = true;
 		m_ID 					= eModifiers.MDF_AREAEXPOSURE;
 		m_TickIntervalInactive 	= DEFAULT_TICK_TIME_INACTIVE_LONG;
 		m_TickIntervalActive 	= DEFAULT_TICK_TIME_ACTIVE_SHORT;
@@ -37,11 +38,11 @@ class AreaExposureMdfr: ModifierBase
 	
 	override void OnActivate(PlayerBase player)
 	{
-	
 		JsonDataContaminatedAreas data = EffectAreaLoader.GetData();
 		if (data)
 		{
 			MiscGameplayFunctions.TeleportCheck(player, data.SafePositions);
+			player.SetPersistentFlag(PersistentFlag.AREA_PRESENCE, false);
 		}
 		
 		//make the player cough immediately

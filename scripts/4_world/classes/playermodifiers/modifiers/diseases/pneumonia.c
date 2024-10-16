@@ -1,16 +1,19 @@
 class PneumoniaMdfr : ModifierBase
 {
-	const int AGENT_THRESHOLD_ACTIVATE = 1000;
-	const int AGENT_THRESHOLD_DEACTIVATE = 700;
+	const int AGENT_THRESHOLD_ACTIVATE = 1150;
+	const int AGENT_THRESHOLD_DEACTIVATE = 1100;
 	
 	const float STAMINA_DEPLETION_MULTIPLIER = 1.3;
 	const float STAMINA_RECOVERY_MULTIPLIER = 0.5;
+	
+	const float HEALTH_LOSS_PNEUMONIA = 0.1;
 	
 	private const int TEMPORARY_RESISTANCE_TIME = 600;
 	
 	override void Init()
 	{
 		m_TrackActivatedTime	= false;
+		m_AnalyticsStatsEnabled = true;
 		m_ID 					= eModifiers.MDF_PNEUMONIA;
 		m_TickIntervalInactive 	= DEFAULT_TICK_TIME_INACTIVE;
 		m_TickIntervalActive 	= DEFAULT_TICK_TIME_ACTIVE;
@@ -54,11 +57,15 @@ class PneumoniaMdfr : ModifierBase
 
 	override protected void OnTick(PlayerBase player, float deltaT)
 	{
+		float healthLoss = HEALTH_LOSS_PNEUMONIA * deltaT;
+		
+		player.AddHealth(-healthLoss);
+		
 		float heavyBreathChance = player.GetSingleAgentCountNormalized(eAgents.INFLUENZA);
 		
-		if ( Math.RandomFloat01() < heavyBreathChance / Math.RandomInt(5,30) )
+		if ( Math.RandomFloat01() < heavyBreathChance / Math.RandomInt(1,15) )
 		{
-			player.RequestSoundEventEx(EPlayerSoundEventID.SYMPTOM_GASP, true, EPlayerSoundEventParam.HIGHEST_PRIORITY);
+			player.GetSymptomManager().QueueUpPrimarySymptom(SymptomIDs.SYMPTOM_GASP);
 		}
 	}
 };

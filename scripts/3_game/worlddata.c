@@ -30,6 +30,7 @@ class WorldData
 	protected ref CatchYieldBank m_YieldBank;
 	protected ref WorldDataWeatherSettings m_WeatherDefaultSettings;
 	protected ref WorldDataLiquidSettings m_LiquidSettings;
+	protected ref TStringArray m_DefaultPlayerRestrictedAreas;
 
 	//! weather related
 	protected int m_BadWeatherChance;
@@ -37,7 +38,14 @@ class WorldData
 	protected bool m_IsSuddenChange;
 	protected float m_WorldWindCoef;
 
-	protected float m_UniversalTemperatureSourceCapModifier;
+	protected float m_UniversalTemperatureSourceCapModifier;	
+	
+	//used at next weather calculation
+	protected int m_SameWeatherCnt = 0;
+	protected int m_StepValue = 5;
+	protected int m_Chance = 50;
+	protected int m_ChoosenWeather = 1;
+	protected int m_LastWeather = 0;
 	
 	
 	void WorldData()
@@ -71,10 +79,12 @@ class WorldData
 		m_TemperaturePerHeightReductionModifier = 0.02;
 		m_CloudsTemperatureEffectModifier 		= 3.0;
 		m_TemperatureInsideBuildingsModifier 	= 1.0;
-		m_WaterContactTemperatureModifier 		= 10.0;
+		m_WaterContactTemperatureModifier 		= 20.0;
 		
 		m_ClearWeatherChance = m_WeatherDefaultSettings.m_ClearWeatherChance;
 		m_BadWeatherChance = m_WeatherDefaultSettings.m_BadWeatherChance;
+		
+		m_DefaultPlayerRestrictedAreas = {};
 	}
 
 	float GetApproxSunriseTime( float monthday )
@@ -321,6 +331,11 @@ class WorldData
 	{
 		return m_YieldBank;
 	}
+	
+	TStringArray GetDefaultPRAPaths()
+	{
+		return m_DefaultPlayerRestrictedAreas;
+	}
 
 
 	//!
@@ -350,12 +365,16 @@ class WorldDataWeatherConstants
 
 class WorldDataWeatherSettings
 {
-	int m_OvercastMinTime = 600;
-	int m_OvercastMaxTime = 900;
+	int m_OvercastMinTime	= 600;
+	int m_OvercastMaxTime 	= 900;
+	int m_OvercastMinLength = 600;
+	int m_OvercastMaxLength = 900;
 	
 	float m_RainThreshold 	= 0.6;
 	int m_RainTimeMin 		= 60;
 	int m_RainTimeMax 		= 120;
+	int m_RainLengthMin 	= 60;
+	int m_RainLengthMax 	= 120;
 	
 	float m_StormThreshold 			= 0.85;
 	float m_ThundersnowThreshold 	= 0.98;
@@ -363,11 +382,19 @@ class WorldDataWeatherSettings
 	float m_SnowfallThreshold 	= 0.3;
 	int m_SnowfallTimeMin 		= 60;
 	int m_SnowfallTimeMax 		= 120;
+	int m_SnowfallLengthMin 	= 150;
+	int m_SnowfallLengthMax 	= 300;
 
 	int m_GlobalSuddenChance		= 95;
 	int m_ClearWeatherChance 		= 30;
 	int m_BadWeatherChance 			= 80;
 	int m_BadWeatherSuddenChance 	= 95;
+		
+	int m_FoggyMorningHeigthBiasLowLimit = 155;
+	int m_DefaultHeigthBias = 170;
+	
+	int m_CalmAfterStormTimeMin = 480;
+	int m_CalmAfterStormTimeMax = 600;
 }
 
 class WorldDataLiquidSettings

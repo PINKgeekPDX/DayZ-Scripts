@@ -4,7 +4,8 @@ class UnconsciousnessMdfr: ModifierBase
 	
 	override void Init()
 	{
-		m_TrackActivatedTime = false;
+		m_TrackActivatedTime 	= false;
+		m_AnalyticsStatsEnabled	= true;
 		m_ID 					= eModifiers.MDF_UNCONSCIOUSNESS;
 		m_TickIntervalInactive 	= 0.5;
 		m_TickIntervalActive 	= 0.5;

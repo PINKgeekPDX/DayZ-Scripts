@@ -1,6 +1,10 @@
 class WaterBottle extends Bottle_Base
 {
-	static const float DAMAGE_OVERHEAT_PER_S = 1;
+	const float DAMAGE_OVERHEAT_PER_S = 0.1;
+	const float DAMAGE_ENVIRO_LIQUID_COEF_MIN = 1;
+	const float DAMAGE_ENVIRO_LIQUID_COEF_MAX = 2;
+	const float DAMAGE_ENVIRO_TEMPDIFF_MIN = 80; //min damage at this demperature diff
+	const float DAMAGE_ENVIRO_TEMPDIFF_MAX = 10; //maximum damage at this demperature diff
 	
 	override string GetPouringSoundset()
 	{
@@ -77,10 +81,14 @@ class WaterBottle extends Bottle_Base
 	
 	override void AffectLiquidContainerOnFill(int liquid_type, float amount)
 	{
-		if (liquid_type == LIQUID_HOTWATER)
+		float liquidTemperature = GetGame().GetMission().GetWorldData().GetLiquidTypeEnviroTemperature(liquid_type);
+		if (liquidTemperature >= GetTemperatureMax())
 		{
+			float temperatureDiff = liquidTemperature - GetTemperature();
+			float tTime = Math.Clamp(Math.InverseLerp(DAMAGE_ENVIRO_TEMPDIFF_MIN,DAMAGE_ENVIRO_TEMPDIFF_MAX,temperatureDiff),0,1);
+			float temperatureDiffCoef = Math.Lerp(DAMAGE_ENVIRO_LIQUID_COEF_MIN,DAMAGE_ENVIRO_LIQUID_COEF_MAX,tTime);
 			float damageVal = GetMaxHealth("","Health") / GetQuantityMax();
-			DecreaseHealth(amount * damageVal,false);
+			DecreaseHealth(amount * damageVal * temperatureDiffCoef,false);
 		}
 	}
 	
@@ -90,7 +98,7 @@ class WaterBottle extends Bottle_Base
 		return GetTemperatureMax();
 	}
 	
-	override void OnItemOverheat(float deltaTime)
+	override void OnItemOverheat(float deltaTime)	
 	{
 		float damageVal = deltaTime * DAMAGE_OVERHEAT_PER_S;
 		DecreaseHealth(damageVal,false);

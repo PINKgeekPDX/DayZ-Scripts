@@ -62,6 +62,6 @@ class SpookyArea23 : SpookyArea
 		super.OnPlayerExitServer(player, trigger);
 		
 		array<typename> types = {SpookyPlayerStalker};
-		MiscGameplayFunctions.RemoveAllAttachedChildrenByTypename(player,types);
+		MiscGameplayFunctions.DeleteAttachedChildrenByTypename(player,types);
 	}
 }

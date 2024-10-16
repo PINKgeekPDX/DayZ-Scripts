@@ -1,10 +1,10 @@
-
 class ReplaceSoundEventBase
 {
 	protected ESoundEventType		m_EventType;
 	protected EReplaceSoundEventID 	m_ID;
 	protected int					m_SoundAnimEventClassID;
 	protected int					m_ReplacedSoundAnimID;
+	protected string				m_UserString;
 	protected PlayerBase 			m_Player;
 	
 	ESoundEventType GetSoundEventType()
@@ -34,11 +34,11 @@ class ReplaceSoundEventBase
 		switch (m_EventType)
 		{
 			case ESoundEventType.SOUND_COMMON:
-				m_Player.ProcessSoundEvent("","", m_ReplacedSoundAnimID);	
+				m_Player.ProcessSoundEvent("", m_UserString, m_ReplacedSoundAnimID);	
 				break;
 			
 			case ESoundEventType.SOUND_WEAPON:
-				m_Player.ProcessWeaponEvent("","", m_ReplacedSoundAnimID);	
+				m_Player.ProcessWeaponEvent("", m_UserString, m_ReplacedSoundAnimID);	
 				break;
 			
 			default:

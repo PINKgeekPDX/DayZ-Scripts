@@ -708,6 +708,7 @@ class HumanCommandVehicle
 	proto native bool				WasGearChange();
 	proto native void				SetClutchState(bool pState);
 	proto native void				KeepInVehicleSpaceAfterLeave(bool pState);
+	proto native void				ProcessLeaveEvents();
 
 	bool IsObjectIgnoredOnGettingOut(IEntity entity)
 	{
@@ -784,7 +785,13 @@ class HumanCommandClimb
 	
 	//! debug draws climb heauristics
 	//! pDebugDrawLevel viz DebugDrawClimb
+	//! use for performing arbitrary climb tests
 	proto native static bool		DoClimbTest(Human pHuman, SHumanCommandClimbResult pResult, int pDebugDrawLevel);
+	
+	//! debug draws climb heauristics
+	//! pDebugDrawLevel viz DebugDrawClimb
+	//! use this test before performing the climb command instead of DoClimbTest
+	proto native static bool		DoPerformClimbTest(Human pHuman, SHumanCommandClimbResult pResult, int pDebugDrawLevel);
 
 	//! debug draws climb heauristics
 	//! int pLevel = 1 result, 2 - capsules (3 - all)
@@ -1290,23 +1297,31 @@ class Human extends Man
 {
 	//! world space - local space - heading space
 
-	//! gets human transform in local space (old)
+	//! Deprecated: replaced with 'PhysicsGetTransformLS', which is local space transform
 	proto native	void 		GetTransformWS(out vector pTm[4]);
 	
-	//! gets human transform in world space (doesn't include enf hierarchy)
+	//! gets human transform in world space
+	//! Note: Value is not cached and it is recomputed every call if there is some parent
 	proto native	void 		PhysicsGetTransformWS(out vector pTm[4]);
 	
-	//! gets human transform in local space
+	//! gets human transform in local space to parent/linked
 	proto native	void 		PhysicsGetTransformLS(out vector pTm[4]);
+	
+	//! gets human position in world space
+	//! Note: Value is not cached and it is recomputed every call if there is some parent
+	proto native	vector 		PhysicsGetPositionWS();
+	
+	//! gets human position in local space to parent/linked
+	proto native	vector 		PhysicsGetPositionLS();
 	
 	//! makes test if there's enough space for character's collider assuming that character can be pushed away from obstacle - usable for checking if character is in some tight space
 	proto native	bool		CheckFreeSpace(vector localDir, float distance, bool useHeading, vector posOffset = vector.Zero, float xzScale = 1.0);
 
-	//! makes test if character can physically move in given direction - length of dir means distance, returns distance fraction
+	//! makes test if character can physically move in given world space direction - length of dir means distance, returns distance fraction
 	proto			float		CollisionMoveTest(vector dir, vector offset, float xzScale, IEntity ignoreEntity, out IEntity hitEntity, out vector hitPosition, out vector hitNormal);
 	
 	//---------------------------------------------------------
-	// link/unlink to/from local space (simple)
+	// link/unlink to/from local space (enfusion hierachy)
 	proto native	void		LinkToLocalSpaceOf(notnull IEntity child, vector pLocalSpaceMatrix[4]);
 	proto native	void		UnlinkFromLocalSpace();
 

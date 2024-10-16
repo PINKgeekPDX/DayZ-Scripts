@@ -75,6 +75,16 @@ class PowerGeneratorStatic : PowerGeneratorBase
 			m_Parent.OnGeneratorStop();
 		}
 	}
+	
+	override vector GetSmokeParticlePosition()
+	{
+		return "1.1 1.1 -1.1";
+	}
+	
+	override vector GetSmokeParticleOrientation()
+	{
+		return "90 0 23";
+	}
 
 	// Checks sparkplug
 	override bool HasSparkplug()
@@ -159,6 +169,11 @@ class PowerGeneratorStatic : PowerGeneratorBase
 	override bool IsTakeable()
 	{
 		return false;
+	}
+	
+	override bool IsActionTargetVisible()
+	{
+		return true;
 	}
 
 	override bool DisableVicinityIcon()

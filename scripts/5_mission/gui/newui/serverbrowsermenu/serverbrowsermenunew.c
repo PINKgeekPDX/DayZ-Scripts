@@ -654,6 +654,14 @@ class ServerBrowserMenuNew extends UIScriptedMenu
 		}
 	}
 	
+	void DeselectCurrentServer()
+	{
+		if (m_SelectedServer)
+			m_SelectedServer.Deselect();
+		
+		m_SelectedServer = null;
+	}
+	
 	void Connect(ServerBrowserEntry server)
 	{
 		SelectServer(server);
@@ -877,5 +885,11 @@ class ServerBrowserMenuNew extends UIScriptedMenu
 		toolbar_x.SetText(InputUtils.GetRichtextButtonIconFromInputAction("UAUICtrlX", "", EUAINPUT_DEVICE_CONTROLLER, InputUtils.ICON_SCALE_TOOLBAR));
 		toolbar_y.SetText(InputUtils.GetRichtextButtonIconFromInputAction("UAUICtrlY", "", EUAINPUT_DEVICE_CONTROLLER, InputUtils.ICON_SCALE_TOOLBAR));
 		toolbar_tr.SetText(InputUtils.GetRichtextButtonIconFromInputAction("UAUIThumbRight", "", EUAINPUT_DEVICE_CONTROLLER, InputUtils.ICON_SCALE_TOOLBAR));
+	}
+	
+	override void OnHide()
+	{
+		super.OnHide();
+		PPERequesterBank.GetRequester(PPERequester_ServerBrowserBlur).Stop();
 	}
 }

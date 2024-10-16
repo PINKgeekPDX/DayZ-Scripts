@@ -1060,6 +1060,8 @@ class CGame
 	proto void				SurfaceUnderObjectByBone(notnull Object object, int boneType, out string type, out int liquidType);
 	proto native float		SurfaceGetNoiseMultiplier(Object directHit, vector pos, int componentIndex);
 	proto native vector		SurfaceGetNormal(float x, float z);
+	proto native float		SurfaceGetSeaLevelMin();
+	proto native float		SurfaceGetSeaLevelMax();
 	proto native float		SurfaceGetSeaLevel();
 	proto native bool		SurfaceIsSea(float x, float z);
 	proto native bool		SurfaceIsPond(float x, float z);

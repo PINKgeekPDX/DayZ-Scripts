@@ -140,6 +140,9 @@ class ActionPushObject : ActionContinuousBase
 		if (!player.IsPlayerInStance(DayZPlayerConstants.STANCEMASK_ERECT|DayZPlayerConstants.STANCEMASK_CROUCH))
 			return false;
 		
+		if (player.PhysicsGetLinkedEntity() == target.GetObject())
+			return false;
+		
 		if (!player.GetSurfaceType())
 			return false;
 

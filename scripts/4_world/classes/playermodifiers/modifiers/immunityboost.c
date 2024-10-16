@@ -6,8 +6,9 @@ class ImmunityBoost: ModifierBase
 	
 	override void Init()
 	{
-		m_TrackActivatedTime = true;
-		m_IsPersistent = true;
+		m_TrackActivatedTime 	= true;
+		m_AnalyticsStatsEnabled	= true;
+		m_IsPersistent 			= true;
 		m_ID 					= eModifiers.MDF_IMMUNITYBOOST;
 		m_TickIntervalInactive 	= DEFAULT_TICK_TIME_INACTIVE;
 		m_TickIntervalActive 	= 1;
@@ -33,20 +34,12 @@ class ImmunityBoost: ModifierBase
 	{
 		player.SetImmunityBoosted(true);
 		player.IncreaseHealingsCount();
-		/*
-		if( player.GetNotifiersManager() )
-			player.GetNotifiersManager().ActivateByType(eNotifiers.NTF_PILLS);
-		*/
 	}
 	
 	override void OnDeactivate(PlayerBase player)
 	{
 		player.SetImmunityBoosted(false);
 		player.DecreaseHealingsCount();
-		/*
-		if( player.GetNotifiersManager() )
-			player.GetNotifiersManager().DeactivateByType(eNotifiers.NTF_PILLS);
-		*/
 	}
 	
 	override bool DeactivateCondition(PlayerBase player)
@@ -54,17 +47,8 @@ class ImmunityBoost: ModifierBase
 		float attached_time = GetAttachedTime();
 		
 		if( attached_time >= m_RegenTime )
-		{
 			return true;	
-		}
 		else
-		{
 			return false;	
-		}
 	}
-
-	override void OnTick(PlayerBase player, float deltaT)
-	{
-		
-	}
-};
+}

@@ -96,9 +96,11 @@ class ActionTakeArrow: ActionTakeItem
 		{
 			ClearActionJuncture(action_data);
 			return;
-		}
+		}		
 		
 		InventoryLocation il = action_data.m_ReservedInventoryLocations.Get(0);
+		
+		ClearInventoryReservationEx(action_data);
 		
 		ItemBase arrow = ItemBase.Cast(il.GetItem());
 		InventoryLocation arrowInventoryLocation = new InventoryLocation;

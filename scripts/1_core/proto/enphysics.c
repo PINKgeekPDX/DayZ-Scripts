@@ -196,6 +196,10 @@ proto void dBodySetAngularVelocity(notnull IEntity body, vector angvel);
 \brief Sets target transformation. If timeslice == dt (simulation step delta time), it will happen in next step, otherwise in time = timeslice
 */
 proto native void dBodySetTargetMatrix(notnull IEntity body, vector matrix[4], float timeslice);
+
+proto native void dBodyGetWorldTransform(notnull IEntity body, out vector matrix[4]);
+proto native void dBodyGetDirectWorldTransform(notnull IEntity body, out vector matrix[4]);
+
 proto native float dBodyGetKineticEnergy(notnull IEntity body);
 
 proto native vector dBodyGetVelocityAt(notnull IEntity body, vector globalpos);

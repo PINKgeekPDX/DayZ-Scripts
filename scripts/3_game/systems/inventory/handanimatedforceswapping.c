@@ -13,9 +13,8 @@ class HandAnimatedMoveToDst_W4T_Basic extends HandStateBase
 			InventoryLocation src = new InventoryLocation;
 			if (item.GetInventory().GetCurrentInventoryLocation(src))
 			{
-				if (GameInventory.LocationCanMoveEntity(src, m_Dst))
+				if (GameInventory.LocationSyncMoveEntity(src, m_Dst))
 				{
-					GameInventory.LocationSyncMoveEntity(src, m_Dst);
 					player.OnItemInHandsChanged();
 				}
 				else

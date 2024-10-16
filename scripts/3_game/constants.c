@@ -732,6 +732,7 @@ class GameConstants
 	const float ENVIRO_HIGH_TEMP_LIMIT					= 70;		//! highest temperature(deg Celsius) where the player gets highest possible heat comfort (1)
 	const float ENVIRO_PLAYER_COMFORT_TEMP				= 24;		//! comfort temperature of environment for the player
 	const float ENVIRO_TEMP_EFFECT_ON_PLAYER			= 40;		//! impact of enviro temperature on player (lower value = higher, cannot be zero or below!)
+	const float ENVIRO_PLAYER_HEATBUFFER_WATEREFFECT	= 20;		//! impact of water contact on player's heatbuffer
 	const float ENVIRO_PLAYER_HEATBUFFER_DECREASE		= 0.03;		//! How much heat buffer decreases per one enviro tick
 	const float ENVIRO_PLAYER_HEATBUFFER_INCREASE		= 0.3;		//! How much heat buffer increases per one enviro tick
 	const float ENVIRO_PLAYER_HEATBUFFER_TEMP_AFFECT	= 0.50;		//! How much heat buffer change rates are affected by temperature
@@ -886,8 +887,8 @@ class GameConstants
 	static const float TEMPERATURE_FREEZETHAW_LEGACY_COEF = 0.2; //artificially lowers the freeze/thaw progression on reverse-calculated time values
 	
 	static const float TEMPERATURE_TIME_OVERHEAT_MIN = 180; //minimal time in seconds to overheat any overheatable entity
-	static const float TEMPERATURE_TIME_FREEZE_MIN = 60; //minimal time in seconds to freeze entity
-	static const float TEMPERATURE_TIME_THAW_MIN = 60; //minimal time in seconds to thaw entity
+	static const float TEMPERATURE_TIME_FREEZE_MIN = 120; //minimal time in seconds to freeze entity
+	static const float TEMPERATURE_TIME_THAW_MIN = 120; //minimal time in seconds to thaw entity
 	
 	static const float TEMPERATURE_FREEZE_TIME_COEF_DRIED = 0.25;
 	static const float TEMPERATURE_FREEZE_TIME_COEF_BURNED = 0.25;
@@ -901,7 +902,7 @@ class GameConstants
 	const float TEMP_COEF_FIREPLACE_COOLING = 2.0;
 	const float TEMP_COEF_FIREPLACE_HEATING = 2.0;
 	const float TEMP_COEF_GAS_STOVE = 1.0;
-	const float TEMP_COEF_UTS = 3.0; //universal temperature sources
+	const float TEMP_COEF_UTS = 6.0; //universal temperature sources
 	const float TEMP_COEF_COOKING_CATCHUP = 3.0; //heating of child items that are below minimal cooking temperature (catching up)
 	const float TEMP_COEF_COOKING_DEFAULT = 3.0;
 	const float TEMP_COEF_COOLING_GLOBAL = 1.0; //one universal coef for item cooling

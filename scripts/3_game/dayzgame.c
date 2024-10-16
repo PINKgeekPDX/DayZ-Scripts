@@ -3008,6 +3008,11 @@ class DayZGame extends CGame
 					UndergroundAreaLoader.OnRPC(ctx);
 					break;
 				}
+				case ERPCs.RPC_PLAYERRESTRICTEDAREAS_SYNC:
+				{
+					CfgPlayerRestrictedAreaHandler.OnRPC(ctx);
+					break;
+				}
 				case ERPCs.RPC_SEND_NOTIFICATION:
 				{
 					NotificationType type;

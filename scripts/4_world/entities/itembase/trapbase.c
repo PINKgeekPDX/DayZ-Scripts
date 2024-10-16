@@ -194,7 +194,7 @@ class TrapBase extends ItemBase
 
 	bool IsPlaceableAtPosition( vector position )
 	{
-		if ( GetGame().SurfaceIsSea( position[0], position[2] ) )
+		if ( position[1] < g_Game.SurfaceGetSeaLevelMax() + 0.03 )
 		{
 			return false;
 		}

@@ -17,8 +17,6 @@ enum BoatFluid
 
 class BoatOwnerState : TransportOwnerState
 {
-	proto native void	SetWaterTime(float value);
-	proto native float	GetWaterTime();
 
 };
 

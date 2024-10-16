@@ -1,13 +1,22 @@
+//#define WEATHER_DATA_LOGGING
 class ChernarusPlusData extends WorldData
 {
-	protected int m_sameWeatherCnt = 0;
-	protected int m_stepValue = 5;
-	protected int m_chance = 50;
-
-	protected int m_choosenWeather = 1;
-	protected int m_lastWeather = 0;
-	
-	protected int m_DefaultHeigthBias = 50;
+	//-------test variables & methods ------
+	#ifdef WEATHER_DATA_LOGGING
+	int overcastChangeCount = 0;
+	int badWeatherCount = 0;
+	int cloudyWeatherCount = 0;
+	int clearWeatherCount = 0;
+	int startYear = 0;
+	int startMonth = 0;
+	int startDay = 0;
+	int startHour = 0;
+	int startMinute = 0;
+	int currentDay = 0;
+	int daysToRun = 10;
+	bool dayInit = false;
+	#endif
+	//------------------------	
 	
 	//All Chernarus firing coordinates 
 	protected static const ref array<vector> CHERNARUS_ARTY_STRIKE_POS = 
@@ -56,9 +65,9 @@ class ChernarusPlusData extends WorldData
 		
 		m_UniversalTemperatureSourceCapModifier = -1.0;		
 		
-		if (GetGame().IsServer() && !GetGame().IsMultiplayer())
+		if (GetGame().IsServer() || !GetGame().IsMultiplayer())
 		{			
-			m_Weather.SetDynVolFogHeightBias(m_DefaultHeigthBias);	
+			m_Weather.SetDynVolFogHeightBias(m_WeatherDefaultSettings.m_DefaultHeigthBias);
 		
 			if (GetGame().IsMultiplayer())
 			{
@@ -76,10 +85,19 @@ class ChernarusPlusData extends WorldData
 		m_WeatherDefaultSettings.m_StormThreshold		 	= 0.9;
 		m_WeatherDefaultSettings.m_GlobalSuddenChance	 	= 0;
 		m_WeatherDefaultSettings.m_BadWeatherSuddenChance 	= 0;
+		m_WeatherDefaultSettings.m_DefaultHeigthBias 		= 50;
 	}
 	
 	override bool WeatherOnBeforeChange( EWeatherPhenomenon type, float actual, float change, float time )
-	{
+	{		
+		#ifdef WEATHER_DATA_LOGGING	
+		if ( !dayInit )
+		{
+			GetGame().GetWorld().GetDate(startYear, startMonth, startDay, startHour, startMinute);
+			dayInit = true;
+		}
+		#endif
+		
 		float phmnTime 	= 5;
 		float phmnLength 	= 10;
 		float phmnValue = 0;
@@ -89,9 +107,9 @@ class ChernarusPlusData extends WorldData
 		m_Weather.SetRainThresholds( m_WeatherDefaultSettings.m_RainThreshold, 1.0, 60 );
 		m_Weather.SetWindMaximumSpeed( 20 );
 		
-		if (m_Weather.GetDynVolFogHeightBias() < m_DefaultHeigthBias)
+		if (m_Weather.GetDynVolFogHeightBias() < m_WeatherDefaultSettings.m_DefaultHeigthBias)
 		{
-			m_Weather.SetDynVolFogHeightBias(m_DefaultHeigthBias);
+			m_Weather.SetDynVolFogHeightBias(m_WeatherDefaultSettings.m_DefaultHeigthBias);
 		}
 
 		switch (type)
@@ -99,92 +117,105 @@ class ChernarusPlusData extends WorldData
 			//-----------------------------------------------------------------------------------------------------------------------------
 			case EWeatherPhenomenon.OVERCAST:			
 			{
+				#ifdef WEATHER_DATA_LOGGING	
+				overcastChangeCount++;
+				#endif
+				
 				float windDirection, windMag;
 
 				//went something goes wrong choose some default random weather	
 				phmnValue = Math.RandomFloatInclusive( 0.2, 0.7 );
 				phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
-				phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );				
+				phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinLength, m_WeatherDefaultSettings.m_OvercastMaxLength );				
 			
 				//----
 				//calculate next weather
-				m_chance = Math.RandomIntInclusive( 0, 100 );
+				m_Chance = Math.RandomIntInclusive( 0, 100 );
 				
 				//--
-				if ( m_lastWeather == WorldDataWeatherConstants.CLEAR_WEATHER )
+				if ( m_LastWeather == WorldDataWeatherConstants.CLEAR_WEATHER )
 				{
-					m_ClearWeatherChance -= ( m_stepValue * m_sameWeatherCnt);					//decrease the chance of the same weather
+					m_ClearWeatherChance -= ( m_StepValue * m_SameWeatherCnt);					//decrease the chance of the same weather
 				}
 
-				if ( m_lastWeather == WorldDataWeatherConstants.CLOUDY_WEATHER )
+				if ( m_LastWeather == WorldDataWeatherConstants.CLOUDY_WEATHER )
 				{
-					m_ClearWeatherChance += ( m_stepValue * m_sameWeatherCnt);					//increase the chance of the better weather
+					m_ClearWeatherChance += ( m_StepValue * m_SameWeatherCnt);					//increase the chance of the better weather
 				}
 			
-				if ( m_lastWeather == WorldDataWeatherConstants.BAD_WEATHER )
+				if ( m_LastWeather == WorldDataWeatherConstants.BAD_WEATHER )
 				{
-					m_ClearWeatherChance += m_stepValue;										//increase the chance of the better weather slightly
-					m_BadWeatherChance += (( m_stepValue * m_sameWeatherCnt ) + m_stepValue  );	//decrease the chance of the same weather rapidly
+					m_ClearWeatherChance += m_StepValue;										//increase the chance of the better weather slightly
+					m_BadWeatherChance += (( m_StepValue * m_SameWeatherCnt ) + m_StepValue  );	//decrease the chance of the same weather rapidly
 				}
 			
 				//----
-				if ( m_chance < m_ClearWeatherChance )
+				if ( m_Chance < m_ClearWeatherChance )
 				{
-					m_choosenWeather = WorldDataWeatherConstants.CLEAR_WEATHER;
-					if ( m_lastWeather == WorldDataWeatherConstants.CLEAR_WEATHER )
-						m_sameWeatherCnt ++;
+					m_ChoosenWeather = WorldDataWeatherConstants.CLEAR_WEATHER;
+					if ( m_LastWeather == WorldDataWeatherConstants.CLEAR_WEATHER )
+						m_SameWeatherCnt ++;
 				}
-				else if ( m_chance > m_BadWeatherChance )
+				else if ( m_Chance > m_BadWeatherChance )
 				{
-					m_choosenWeather = WorldDataWeatherConstants.BAD_WEATHER;
-					if ( m_lastWeather == WorldDataWeatherConstants.BAD_WEATHER )
-						m_sameWeatherCnt ++;
+					m_ChoosenWeather = WorldDataWeatherConstants.BAD_WEATHER;
+					if ( m_LastWeather == WorldDataWeatherConstants.BAD_WEATHER )
+						m_SameWeatherCnt ++;
 				}
 				else
 				{
-					m_choosenWeather = WorldDataWeatherConstants.CLOUDY_WEATHER;
-					if ( m_lastWeather == WorldDataWeatherConstants.CLOUDY_WEATHER )
-						m_sameWeatherCnt ++;
+					m_ChoosenWeather = WorldDataWeatherConstants.CLOUDY_WEATHER;
+					if ( m_LastWeather == WorldDataWeatherConstants.CLOUDY_WEATHER )
+						m_SameWeatherCnt ++;
 				}
 
-				if ( m_choosenWeather != m_lastWeather )
-					m_sameWeatherCnt = 0;
+				if ( m_ChoosenWeather != m_LastWeather )
+					m_SameWeatherCnt = 0;
 
 				m_ClearWeatherChance = m_WeatherDefaultSettings.m_ClearWeatherChance;
 				m_BadWeatherChance = m_WeatherDefaultSettings.m_BadWeatherChance;
 
 				//----
 				//set choosen weather			
-				if ( m_choosenWeather == WorldDataWeatherConstants.CLEAR_WEATHER  )
+				if ( m_ChoosenWeather == WorldDataWeatherConstants.CLEAR_WEATHER  )
 				{
-					m_lastWeather = WorldDataWeatherConstants.CLEAR_WEATHER;
+					m_LastWeather = WorldDataWeatherConstants.CLEAR_WEATHER;
+					#ifdef WEATHER_DATA_LOGGING
+					clearWeatherCount++;
+					#endif
 					
 					phmnValue = Math.RandomFloatInclusive( 0.0, 0.3 );
 					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
-					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
+					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinLength, m_WeatherDefaultSettings.m_OvercastMaxLength );
 				}
 
-				if ( m_choosenWeather == WorldDataWeatherConstants.CLOUDY_WEATHER )
+				if ( m_ChoosenWeather == WorldDataWeatherConstants.CLOUDY_WEATHER )
 				{
-					m_lastWeather = WorldDataWeatherConstants.CLOUDY_WEATHER;
-
+					m_LastWeather = WorldDataWeatherConstants.CLOUDY_WEATHER;
+					#ifdef WEATHER_DATA_LOGGING
+					cloudyWeatherCount++;
+					#endif
+					
 					phmnValue = Math.RandomFloatInclusive( 0.3, 0.6 );
 					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
-					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
+					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinLength, m_WeatherDefaultSettings.m_OvercastMaxLength );
 				}
 			
-				if ( m_choosenWeather == WorldDataWeatherConstants.BAD_WEATHER )
+				if ( m_ChoosenWeather == WorldDataWeatherConstants.BAD_WEATHER )
 				{
-					m_lastWeather = WorldDataWeatherConstants.BAD_WEATHER;
+					m_LastWeather = WorldDataWeatherConstants.BAD_WEATHER;
+					#ifdef WEATHER_DATA_LOGGING
+					badWeatherCount++;
+					#endif
 
 					phmnValue = Math.RandomFloatInclusive( 0.6, 1.0 );
 					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
-					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
+					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinLength, m_WeatherDefaultSettings.m_OvercastMaxLength );
 				}
 
 				m_Weather.GetOvercast().Set( phmnValue, phmnTime, phmnLength );
 				
-				CalculateWind( m_choosenWeather, false, windMag, windDirection );
+				CalculateWind( m_ChoosenWeather, false, windMag, windDirection );
 				m_Weather.GetWindMagnitude().Set( windMag, phmnTime * WIND_MAGNITUDE_TIME_MULTIPLIER , phmnTime * (1 - WIND_MAGNITUDE_TIME_MULTIPLIER) ); // magnitude change happens during the overcast change, after overcast change finishes wind will decrease a bit
 				m_Weather.GetWindDirection().Set( windDirection, phmnTime * WIND_DIRECTION_TIME_MULTIPLIER , phmnTime - (phmnTime * WIND_DIRECTION_TIME_MULTIPLIER) + phmnLength + 1000 );
 				
@@ -192,7 +223,40 @@ class ChernarusPlusData extends WorldData
 
 				Debug.WeatherLog(string.Format("Chernarus::Weather::Overcast:: (%1) overcast: %2", g_Game.GetDayTime(), actual));
 				Debug.WeatherLog(string.Format("Chernarus::Weather::Overcast::Rain:: (%1) %2", g_Game.GetDayTime(), m_Weather.GetRain().GetActual()));
-
+				
+				#ifdef WEATHER_DATA_LOGGING
+				int testYear = 0;
+				int testMonth = 0;
+				int testDay = 0;
+				int testHour = 0;
+				int testMinute = 0;
+				GetGame().GetWorld().GetDate(testYear, testMonth, testDay, testHour, testMinute);
+					
+				if ( testDay - startDay > currentDay && testHour - startHour >= 0 && testMinute - startMinute >= 0 )
+				{
+					FileHandle file = OpenFile("$profile:OvercastCountsCharnarus" + (currentDay + 1) + ".log", FileMode.WRITE);
+					FPrintln(file, "================================================================");
+					FPrintln(file," ================== Day " + (currentDay + 1) + " ================== ");
+					FPrintln(file, "================================================================");
+					FPrintln(file, "Overcast Change Count: " + overcastChangeCount);
+					FPrintln(file, "Bad Weather Change Count: " + badWeatherCount);				
+					FPrintln(file, "Cloudy Weather Count: " + cloudyWeatherCount);
+					FPrintln(file, "Clear Weather Count: " + clearWeatherCount);
+				
+					currentDay++;					
+					CloseFile(file);
+					if ( currentDay == daysToRun )
+					{
+						g_Game.RequestExit(IDC_MAIN_QUIT);
+					}
+				
+					overcastChangeCount = 0;
+					badWeatherCount = 0;
+					cloudyWeatherCount = 0;
+					clearWeatherCount = 0;				
+				}			
+				#endif
+				
 				return true;
 			}
 			//-----------------------------------------------------------------------------------------------------------------------------
@@ -200,7 +264,7 @@ class ChernarusPlusData extends WorldData
 			{
 				float actualOvercast = m_Weather.GetOvercast().GetActual();
 				
-				m_chance = Math.RandomIntInclusive( 0, 100 );
+				m_Chance = Math.RandomIntInclusive( 0, 100 );
 				phmnValue = 0.2;
 				phmnTime = 90;
 				phmnLength = 30;
@@ -226,19 +290,19 @@ class ChernarusPlusData extends WorldData
 				//make a differnce in "normal rain"
 				if ( actualOvercast < 0.75 )
 				{
-					if ( m_chance < 30 )
+					if ( m_Chance < 30 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.1, 0.3 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
 						phmnLength = 0;
 					}
-					else if ( m_chance < 60 )
+					else if ( m_Chance < 60 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.2, 0.5 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
 						phmnLength = 0;
 					}
-					else if ( m_chance < 80 )
+					else if ( m_Chance < 80 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.0, 0.2 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
@@ -248,24 +312,24 @@ class ChernarusPlusData extends WorldData
 					{
 						phmnValue = 0;
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
-						phmnLength = 120;
+						phmnLength = m_WeatherDefaultSettings.m_RainLengthMax;
 					}
 				}
 				else
 				{
-					if ( m_chance < 25 )
+					if ( m_Chance < 25 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.5, 0.7 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
 						phmnLength = 0;
 					}
-					else if ( m_chance < 50 )
+					else if ( m_Chance < 50 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.2, 0.4 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
 						phmnLength = 0;
 					}
-					else if ( m_chance < 75 )
+					else if ( m_Chance < 75 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.4, 0.6 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
@@ -275,7 +339,7 @@ class ChernarusPlusData extends WorldData
 					{
 						phmnValue = 0;
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
-						phmnLength = 120;
+						phmnLength = m_WeatherDefaultSettings.m_RainLengthMax;
 					}
 				}
 		
@@ -321,7 +385,7 @@ class ChernarusPlusData extends WorldData
 			case EWeatherPhenomenon.WIND_MAGNITUDE:
 			{
 				phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
-				m_Weather.GetWindMagnitude().Set(m_Weather.GetWindMagnitude().GetActual() * 0.75, phmnTime , m_WeatherDefaultSettings.m_OvercastMaxTime); // next change will be happen with the overcast change
+				m_Weather.GetWindMagnitude().Set(m_Weather.GetWindMagnitude().GetActual() * 0.75, phmnTime , m_WeatherDefaultSettings.m_OvercastMaxLength); // next change will be happen with the overcast change
 			
 			return true;
 			}
@@ -412,13 +476,13 @@ class ChernarusPlusData extends WorldData
 			
 			heightBias = m_Weather.GetDynVolFogHeightBias();
 			
-			if (heightBias == m_DefaultHeigthBias) //checks if the randomization has been done
+			if (heightBias == m_WeatherDefaultSettings.m_DefaultHeigthBias) //checks if the randomization has been done
 			{
 				int diceRoll = Math.RandomIntInclusive(1,100);
 				
 				if (diceRoll < 50)
 				{
-					heightBias = Math.RandomInt(m_DefaultHeigthBias + 1, 80);
+					heightBias = Math.RandomInt(m_WeatherDefaultSettings.m_DefaultHeigthBias + 1, 80);
 				}
 				else if (diceRoll < 85)
 				{
@@ -434,18 +498,26 @@ class ChernarusPlusData extends WorldData
 		{
 			distanceDensity = Math.Lerp( 0.01, 0.05, lerpValue ) * Math.Clamp(1 - (windMagnitude / m_Weather.GetWindMaximumSpeed()), 0.1, 1);	
 			heigthDensity = Math.Lerp( 0.9, 1, lerpValue);
-			heightBias = m_DefaultHeigthBias;
+			heightBias = m_WeatherDefaultSettings.m_DefaultHeigthBias;
 		}
 		else
 		{
 			distanceDensity = Math.Lerp( 0.01, 0.03, lerpValue ) * Math.Clamp(1 - (windMagnitude / m_Weather.GetWindMaximumSpeed()), 0.1, 1);	
 			heigthDensity = Math.Lerp( 0.9, 1, lerpValue);
-			heightBias = m_DefaultHeigthBias;
+			heightBias = m_WeatherDefaultSettings.m_DefaultHeigthBias;
 		}
 					
 		m_Weather.SetDynVolFogDistanceDensity(distanceDensity, changeTime);
 		m_Weather.SetDynVolFogHeightDensity(heigthDensity, changeTime);
 		m_Weather.SetDynVolFogHeightBias(heightBias, changeTime);	
+	}
+	
+	bool LogWeatherData() //called from mission file to check if the logging should start
+	{
+		#ifdef WEATHER_DATA_LOGGING
+		return true;
+		#endif
+		return false;
 	}
 
 	//! DEPRECATED (see WorldDataWeatherConstants)
@@ -464,4 +536,11 @@ class ChernarusPlusData extends WorldData
 	
 	protected int m_clearWeatherChance = m_ClearWeatherChance;
 	protected int m_badWeatherChance = m_BadWeatherChance;
+	
+	protected int m_sameWeatherCnt = m_SameWeatherCnt;
+	protected int m_stepValue = m_StepValue;
+	protected int m_chance = m_Chance;
+
+	protected int m_choosenWeather = m_ChoosenWeather;
+	protected int m_lastWeather = m_LastWeather;
 }

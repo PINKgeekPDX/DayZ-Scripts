@@ -24,7 +24,7 @@ class JsonFileLoader<Class T>
 			
 			if (!m_Serializer)
 				m_Serializer = new JsonSerializer();
-
+			
 			string error;
 			if (!m_Serializer.ReadFromString(data, fileContent, error))
 			{

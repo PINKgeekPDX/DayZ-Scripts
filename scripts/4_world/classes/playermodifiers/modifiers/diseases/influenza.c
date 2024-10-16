@@ -1,6 +1,6 @@
 class InfluenzaMdfr : ModifierBase
 {
-	const int AGENT_THRESHOLD_ACTIVATE 		= 700;
+	const int AGENT_THRESHOLD_ACTIVATE 		= 600;
 	const int AGENT_THRESHOLD_DEACTIVATE 	= 400;
 
 	private const int COUGH_RND_DIVIDER_NORMAL_MIN 		= 5;
@@ -15,6 +15,7 @@ class InfluenzaMdfr : ModifierBase
 	override void Init()
 	{
 		m_TrackActivatedTime	= false;
+		m_AnalyticsStatsEnabled = true;
 		m_ID 					= eModifiers.MDF_INFLUENZA;
 		m_TickIntervalInactive 	= DEFAULT_TICK_TIME_INACTIVE;
 		m_TickIntervalActive 	= DEFAULT_TICK_TIME_ACTIVE;
@@ -54,7 +55,7 @@ class InfluenzaMdfr : ModifierBase
 
 	override protected void OnTick(PlayerBase player, float deltaT)
 	{
-		float chanceOfCough = player.GetSingleAgentCountNormalized(eAgents.INFLUENZA);
+		float chanceOfCough = Math.Clamp(player.GetSingleAgentCountNormalized(eAgents.INFLUENZA),0,0.85);
 		
 		float coughRandomDivider = Math.RandomInt(COUGH_RND_DIVIDER_NORMAL_MIN, COUGH_RND_DIVIDER_NORMAL_MAX);
 		if (m_ModifiersManager.IsModifierActive(eModifiers.MDF_PAINKILLERS) || m_ModifiersManager.IsModifierActive(eModifiers.MDF_MORPHINE))

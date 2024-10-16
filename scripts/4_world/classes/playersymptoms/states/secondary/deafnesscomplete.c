@@ -7,6 +7,7 @@ class DeafnessCompleteSymptom : SymptomBase
 		m_ID 			= SymptomIDs.SYMPTOM_DEAFNESS_COMPLETE;
 		m_IsPersistent 	= false;
 		m_MaxCount		= 1;
+		m_SyncToClient  = true;
 
 		m_DestroyOnAnimFinish = true;
 	}

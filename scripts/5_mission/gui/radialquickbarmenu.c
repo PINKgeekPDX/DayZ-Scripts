@@ -830,4 +830,17 @@ class RadialQuickbarMenu extends UIScriptedMenu
 		toolbarBackIcon.SetText(InputUtils.GetRichtextButtonIconFromInputAction(backAction, "", controllerID, InputUtils.ICON_SCALE_TOOLBAR));
 		toolbarBackSpacer.Show(m_CurrentCategory != RadialQuickbarCategory.DEFAULT);
 	}
+	
+	override void OnPlayerDeath()
+	{
+		super.OnPlayerDeath();
+		
+		// Close inventory menu when this menu got closed by the character death event as player could be assigning a item to the quickbar
+		// in the moment he dies and the inventory menu is opened too.
+		MissionGameplay missionGameplay = MissionGameplay.Cast(g_Game.GetMission());
+		if (missionGameplay && missionGameplay.GetInventory())
+		{
+			missionGameplay.HideInventory();
+		}
+	}
 }

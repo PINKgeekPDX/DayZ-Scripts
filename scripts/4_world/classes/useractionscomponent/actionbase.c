@@ -43,6 +43,7 @@ class ActionData
 	ref array<ref InventoryLocation>	m_ReservedInventoryLocations; //used also for juncture
 	int									m_RefreshReservationTimer;
 	int									m_RefreshJunctureTimer;
+	int									m_DelayedAnimationEventID;
 	bool								m_WasExecuted;
 	bool								m_WasActionStarted;
 	bool								m_ReciveEndInput;
@@ -925,7 +926,6 @@ class ActionBase : ActionBase_Basic
 			for ( int i = 0; i < action_data.m_ReservedInventoryLocations.Count(); i++)
 			{
 				il = action_data.m_ReservedInventoryLocations.Get(i);
-				EntityAI entity = il.GetItem();
 				action_data.m_Player.GetInventory().ClearInventoryReservationEx( il.GetItem() , il );
 			}
 
@@ -989,7 +989,7 @@ class ActionBase : ActionBase_Basic
 					EntityAI entity = il.GetItem();
 					if (entity)
 					{
-						GetGame().ClearJuncture(action_data.m_Player, entity);
+						GetGame().ClearJunctureEx(action_data.m_Player, entity);
 					}
 				}
 	

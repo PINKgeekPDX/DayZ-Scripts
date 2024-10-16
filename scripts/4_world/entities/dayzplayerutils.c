@@ -425,7 +425,7 @@ class DayZPlayerUtils
 	static EWaterLevels CheckWaterLevel(DayZPlayer pPlayer, out vector waterLevel)
 	{
 		SHumanCommandSwimSettings swimData = pPlayer.GetDayZPlayerType().CommandSwimSettingsW();
-		vector 	pp = pPlayer.GetPosition();
+		vector 	pp = pPlayer.PhysicsGetPositionWS();
 		waterLevel = HumanCommandSwim.WaterLevelCheck(pPlayer, pp);
 		
 		if (waterLevel[1] < swimData.m_fToCrouchLevel)

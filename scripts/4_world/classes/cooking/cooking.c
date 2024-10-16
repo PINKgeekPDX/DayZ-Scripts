@@ -157,7 +157,8 @@ class Cooking
 			}
 			
 			//handle audio visuals
-			bottle_base.RefreshAudioVisualsOnClient(cookingMethodWithTime.param1, stateFlags.param1, is_empty, stateFlags.param2);
+			if (bottle_base.Type() == COOKING_EQUIPMENT_POT || bottle_base.Type() == COOKING_EQUIPMENT_CAULDRON)
+				bottle_base.RefreshAudioVisualsOnClient(cookingMethodWithTime.param1, stateFlags.param1, is_empty, stateFlags.param2);
 		}
 		
 		FryingPan frying_pan = FryingPan.Cast(cooking_equipment);

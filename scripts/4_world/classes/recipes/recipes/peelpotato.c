@@ -100,6 +100,9 @@ class PeelPotato extends RecipeBase
 			//temperature check
 			if (!ingredient.CanHaveTemperature())
 				item_result.SetTemperatureDirect(GameConstants.ITEM_TEMPERATURE_NEUTRAL_ZONE_MIDDLE);
+			
+			if (!ingredient.CanFreeze())
+				item_result.SetFrozen(false);
 		}
 	}
 };

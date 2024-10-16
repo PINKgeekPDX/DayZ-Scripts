@@ -1,15 +1,25 @@
+//#define WEATHER_DATA_LOGGING
 class EnochData : WorldData
 {
-	protected int m_stepValue = 5;
-
-	protected int m_sameWeatherCnt = 0;
-	protected int m_chance = 50;
-
-	protected int m_choosenWeather = 1;
-	protected int m_lastWeather = 0;
-	
-	protected int m_FoggyMorningHeigthBiasLowLimit = 155;
-	protected int m_DefaultHeigthBias = 170;
+	//-------test variables & methods ------
+	#ifdef WEATHER_DATA_LOGGING
+	int overcastChangeCount = 0;
+	int suddenChangeCount = 0;
+	int stormCount = 0;
+	int suddenStormCount = 0;
+	int badWeatherCount = 0;
+	int cloudyWeatherCount = 0;
+	int clearWeatherCount = 0;
+	int startYear = 0;
+	int startMonth = 0;
+	int startDay = 0;
+	int startHour = 0;
+	int startMinute = 0;
+	int currentDay = 0;
+	int daysToRun = 10;
+	bool dayInit = false;
+	#endif
+	//------------------------	
 	
 	protected static const ref array<vector> LIVONIA_ARTY_STRIKE_POS = 
 	{ 
@@ -62,7 +72,7 @@ class EnochData : WorldData
 		
 		if (GetGame().IsServer() || !GetGame().IsMultiplayer())
 		{
-			m_Weather.SetDynVolFogHeightBias(m_DefaultHeigthBias);
+			m_Weather.SetDynVolFogHeightBias(m_WeatherDefaultSettings.m_DefaultHeigthBias);
 		
 			if (GetGame().IsMultiplayer())
 		
@@ -127,6 +137,14 @@ class EnochData : WorldData
 	
 	override bool WeatherOnBeforeChange( EWeatherPhenomenon type, float actual, float change, float time )
 	{
+		#ifdef WEATHER_DATA_LOGGING	
+		if ( !dayInit )
+		{
+			GetGame().GetWorld().GetDate(startYear, startMonth, startDay, startHour, startMinute);
+			dayInit = true;
+		}
+		#endif
+		
 		float phmnTime = 5;
 		float phmnLength = 10;
 		float phmnValue = 0;
@@ -144,107 +162,144 @@ class EnochData : WorldData
 			//-----------------------------------------------------------------------------------------------------------------------------
 			case EWeatherPhenomenon.OVERCAST:
 			{
+				#ifdef WEATHER_DATA_LOGGING	
+				overcastChangeCount++;
+				#endif
+				
 				float windDirection, windMag;
 			
 				//went something goes wrong choose some default random weather	
 				phmnValue = Math.RandomFloatInclusive( 0.1, 0.4 );
 				phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
-				phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );	
+				phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinLength, m_WeatherDefaultSettings.m_OvercastMaxLength );	
 			
 				//----
 				//calculate next weather
-				m_chance = Math.RandomIntInclusive( 0, 100 );
+				m_Chance = Math.RandomIntInclusive( 0, 100 );
 				
 				//--
-				if ( m_lastWeather == WorldDataWeatherConstants.CLEAR_WEATHER )
+				if ( m_LastWeather == WorldDataWeatherConstants.CLEAR_WEATHER )
 				{
-					m_ClearWeatherChance -= ( m_stepValue * m_sameWeatherCnt);					//decrease the chance of the same weather
+					m_ClearWeatherChance -= ( m_StepValue * m_SameWeatherCnt);					//decrease the chance of the same weather
 				}
 
-				if ( m_lastWeather == WorldDataWeatherConstants.CLOUDY_WEATHER )
+				if ( m_LastWeather == WorldDataWeatherConstants.CLOUDY_WEATHER )
 				{
-					m_ClearWeatherChance += ( m_stepValue * m_sameWeatherCnt);					//increase the chance of the better weather
-					m_badWeatherChance -= ( m_stepValue * m_sameWeatherCnt);
+					m_ClearWeatherChance += ( m_StepValue * m_SameWeatherCnt);					//increase the chance of the better weather
+					m_BadWeatherChance -= ( m_StepValue * m_SameWeatherCnt);
 				}
 			
-				if ( m_lastWeather == WorldDataWeatherConstants.BAD_WEATHER )
+				if ( m_LastWeather == WorldDataWeatherConstants.BAD_WEATHER )
 				{
-					m_ClearWeatherChance += m_stepValue;										//increase the chance of the better weather slightly
-					m_badWeatherChance += ( m_stepValue * m_sameWeatherCnt );	//decrease the chance of the same weather
+					m_ClearWeatherChance += m_StepValue;										//increase the chance of the better weather slightly
+					m_BadWeatherChance += ( m_StepValue * m_SameWeatherCnt );					//decrease the chance of the same weather
 				}
 			
 				//----
-				if ( m_chance > m_WeatherDefaultSettings.m_GlobalSuddenChance && !m_IsSuddenChange) //checks if previous weather was a sudden change
-				{	
+				if ( m_Chance > m_WeatherDefaultSettings.m_GlobalSuddenChance && !m_IsSuddenChange) //checks if previous weather was a sudden change
+				{						
 					m_IsSuddenChange = true;
-					m_choosenWeather = WorldDataWeatherConstants.BAD_WEATHER;
-					if ( m_lastWeather == WorldDataWeatherConstants.BAD_WEATHER )
-						m_sameWeatherCnt ++;
+					m_ChoosenWeather = WorldDataWeatherConstants.BAD_WEATHER;
+					if ( m_LastWeather == WorldDataWeatherConstants.BAD_WEATHER )
+						m_SameWeatherCnt ++;
 				}
-				else if ( m_chance < m_ClearWeatherChance )
+				else if ( m_Chance < m_ClearWeatherChance )
 				{
-					m_choosenWeather = WorldDataWeatherConstants.CLEAR_WEATHER;
-					if ( m_lastWeather == WorldDataWeatherConstants.CLEAR_WEATHER )
-						m_sameWeatherCnt ++;
+					m_ChoosenWeather = WorldDataWeatherConstants.CLEAR_WEATHER;
+					m_IsSuddenChange = false;
+					if ( m_LastWeather == WorldDataWeatherConstants.CLEAR_WEATHER )
+						m_SameWeatherCnt ++;
 				}
-				else if ( m_chance > m_badWeatherChance )
+				else if ( m_Chance > m_BadWeatherChance )
 				{
-					m_choosenWeather = WorldDataWeatherConstants.BAD_WEATHER;
-					if ( m_lastWeather == WorldDataWeatherConstants.BAD_WEATHER )
-						m_sameWeatherCnt ++;
+					m_ChoosenWeather = WorldDataWeatherConstants.BAD_WEATHER;
+					m_IsSuddenChange = false;
+					if ( m_LastWeather == WorldDataWeatherConstants.BAD_WEATHER )
+						m_SameWeatherCnt ++;
 				}
 				else
 				{
-					m_choosenWeather = WorldDataWeatherConstants.CLOUDY_WEATHER;
-					if ( m_lastWeather == WorldDataWeatherConstants.CLOUDY_WEATHER )
-						m_sameWeatherCnt ++;
+					m_ChoosenWeather = WorldDataWeatherConstants.CLOUDY_WEATHER;
+					m_IsSuddenChange = false;
+					if ( m_LastWeather == WorldDataWeatherConstants.CLOUDY_WEATHER )
+						m_SameWeatherCnt ++;
 				}
 
-				if ( m_choosenWeather != m_lastWeather )
-					m_sameWeatherCnt = 0;
+				if ( m_ChoosenWeather != m_LastWeather )
+					m_SameWeatherCnt = 0;
 
 				m_ClearWeatherChance = m_WeatherDefaultSettings.m_ClearWeatherChance;
-				m_badWeatherChance = m_WeatherDefaultSettings.m_BadWeatherChance;
+				m_BadWeatherChance = m_WeatherDefaultSettings.m_BadWeatherChance;
 
 				//----
 				//set choosen weather			
-				if ( m_choosenWeather == WorldDataWeatherConstants.CLEAR_WEATHER  )
+				if ( m_ChoosenWeather == WorldDataWeatherConstants.CLEAR_WEATHER  )
 				{
-					m_lastWeather = WorldDataWeatherConstants.CLEAR_WEATHER;
+					m_LastWeather = WorldDataWeatherConstants.CLEAR_WEATHER;
+					#ifdef WEATHER_DATA_LOGGING
+					clearWeatherCount++;
+					#endif
 					
 					phmnValue = Math.RandomFloatInclusive( 0.0, 0.3 );
 					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
-					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
+					phmnLength = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinLength, m_WeatherDefaultSettings.m_OvercastMaxLength );
 				}
 
-				if ( m_choosenWeather == WorldDataWeatherConstants.CLOUDY_WEATHER )
+				if ( m_ChoosenWeather == WorldDataWeatherConstants.CLOUDY_WEATHER )
 				{
-					m_lastWeather = WorldDataWeatherConstants.CLOUDY_WEATHER;
+					m_LastWeather = WorldDataWeatherConstants.CLOUDY_WEATHER;
+					#ifdef WEATHER_DATA_LOGGING
+					cloudyWeatherCount++;
+					#endif
 
 					phmnValue = Math.RandomFloatInclusive( 0.3, 0.7 );
 					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
-					phmnLength = Math.RandomIntInclusive( 0, m_WeatherDefaultSettings.m_OvercastMinTime );
+					phmnLength = Math.RandomIntInclusive( 0, m_WeatherDefaultSettings.m_OvercastMinLength );
 				}
 			
-				if ( m_choosenWeather == WorldDataWeatherConstants.BAD_WEATHER )
+				if ( m_ChoosenWeather == WorldDataWeatherConstants.BAD_WEATHER )
 				{
-					m_lastWeather = WorldDataWeatherConstants.BAD_WEATHER;
+					m_LastWeather = WorldDataWeatherConstants.BAD_WEATHER;
 
 					phmnValue = Math.RandomFloatInclusive( 0.7, 1.0 );
 					phmnTime = Math.RandomIntInclusive( m_WeatherDefaultSettings.m_OvercastMinTime, m_WeatherDefaultSettings.m_OvercastMaxTime );
-					phmnLength = Math.RandomIntInclusive( 0, m_WeatherDefaultSettings.m_OvercastMinTime );
-				
+					phmnLength = Math.RandomIntInclusive( 0, m_WeatherDefaultSettings.m_OvercastMinLength );
+					
+					#ifdef WEATHER_DATA_LOGGING
+					badWeatherCount++;
+					#endif
+					
 					if ( m_IsSuddenChange )
 					{
+						#ifdef WEATHER_DATA_LOGGING
+						suddenChangeCount++;
+						badWeatherCount--;
+						#endif
+						
 						phmnTime *= SUDDENCHANGE_TIME_MULTIPLIER;
 						phmnLength *= SUDDENCHANGE_LENGTH_MULTIPLIER;
 					}
+					
+					#ifdef WEATHER_DATA_LOGGING
+					if ( phmnValue > m_WeatherDefaultSettings.m_StormThreshold )
+					{						
+						if ( m_IsSuddenChange )
+						{
+							suddenChangeCount--;
+							suddenStormCount++;																					
+						}
+						else
+						{	stormCount++;
+							badWeatherCount--;
+						}
+					}
+					#endif
 				}
 
 				m_Weather.GetOvercast().Set( phmnValue, phmnTime, phmnLength );
 			
 				//we want to control wind with the overcast calculation and change with it.
-				CalculateWind( m_choosenWeather, m_IsSuddenChange, windMag, windDirection );
+				CalculateWind( m_ChoosenWeather, m_IsSuddenChange, windMag, windDirection );
 				m_Weather.GetWindMagnitude().Set( windMag, phmnTime * WIND_MAGNITUDE_TIME_MULTIPLIER , phmnTime * (1 - WIND_MAGNITUDE_TIME_MULTIPLIER) ); // magnitude change happens during the overcast change, after overcast change finishes wind will decrease a bit
 				m_Weather.GetWindDirection().Set( windDirection, phmnTime * WIND_DIRECTION_TIME_MULTIPLIER , phmnTime - (phmnTime * WIND_DIRECTION_TIME_MULTIPLIER) + phmnLength + 1000 );
 			
@@ -257,15 +312,54 @@ class EnochData : WorldData
 
 				Debug.WeatherLog(string.Format("Enoch::Weather::Overcast:: (%1) overcast: %2", g_Game.GetDayTime(), actual));
 				Debug.WeatherLog(string.Format("Enoch::Weather::Overcast::Rain:: (%1) %2", g_Game.GetDayTime(), m_Weather.GetRain().GetActual()));
-
+				
+				#ifdef WEATHER_DATA_LOGGING
+				int testYear = 0;
+				int testMonth = 0;
+				int testDay = 0;
+				int testHour = 0;
+				int testMinute = 0;
+				GetGame().GetWorld().GetDate(testYear, testMonth, testDay, testHour, testMinute);
+					
+				if ( testDay - startDay > currentDay && testHour - startHour >= 0 && testMinute - startMinute >= 0 )
+				{
+					FileHandle file = OpenFile("$profile:OvercastCountsLivonia" + (currentDay + 1) + ".log", FileMode.WRITE);
+					FPrintln(file, "================================================================");
+					FPrintln(file," ================== Day " + (currentDay + 1) + " ================== ");
+					FPrintln(file, "================================================================");
+					FPrintln(file, "Overcast Change Count: " + overcastChangeCount);
+					FPrintln(file, "Bad Weather Change Count: " + badWeatherCount);
+					FPrintln(file, "Sudden Change Count: " + suddenChangeCount);					
+					FPrintln(file, "Storm Count: " + stormCount);
+					FPrintln(file, "Sudden Storm Count: " + suddenStormCount);					
+					FPrintln(file, "Cloudy Weather Count: " + cloudyWeatherCount);
+					FPrintln(file, "Clear Weather Count: " + clearWeatherCount);
+				
+					currentDay++;					
+					CloseFile(file);
+					if ( currentDay == daysToRun )
+					{
+						g_Game.RequestExit(IDC_MAIN_QUIT);
+					}
+				
+					overcastChangeCount = 0;
+					suddenChangeCount = 0;
+					stormCount = 0;
+					suddenStormCount = 0;
+					badWeatherCount = 0;
+					cloudyWeatherCount = 0;
+					clearWeatherCount = 0;				
+				}			
+				#endif
+				
 				return true;
 			}
 			//-----------------------------------------------------------------------------------------------------------------------------
 			case EWeatherPhenomenon.RAIN:
 			{
 				float actualOvercast = m_Weather.GetOvercast().GetActual();
-				
-				m_chance = Math.RandomIntInclusive( 0, 100 );	
+
+				m_Chance = Math.RandomIntInclusive( 0, 100 );	
 				phmnValue = 0.2;
 				phmnTime = 90;
 				phmnLength = 30;
@@ -276,61 +370,70 @@ class EnochData : WorldData
 					Debug.WeatherLog (string.Format("Enoch::Weather::Rain::ForceEnd:: (%1) %2 -> 0", g_Game.GetDayTime(), actual));
 					return true;
 				}
-			
+
 				if ( actualOvercast > m_WeatherDefaultSettings.m_StormThreshold )
 				{
-					phmnValue = Math.RandomFloatInclusive( 0.8, 1.0 );
-					phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
-					phmnLength = 0;
-
+					if( m_Weather.GetOvercast().GetActual() > m_Weather.GetOvercast().GetForecast() ) //ensure to have a pause to rain after the storm
+					{
+						phmnValue = 0;
+						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax ) * 2;
+						phmnLength =  Math.RandomInt( m_WeatherDefaultSettings.m_CalmAfterStormTimeMin, m_WeatherDefaultSettings.m_CalmAfterStormTimeMax );
+					}
+					else
+					{
+						phmnValue = Math.RandomFloatInclusive( 0.8, 1.0 );
+						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
+						phmnLength = 0;
+					}
+					
 					m_Weather.GetRain().Set( phmnValue, phmnTime, phmnLength );	
 					Debug.WeatherLog(string.Format("Enoch::Weather::Rain::ForceStorm:: (%1) %2 -> %3", g_Game.GetDayTime(), actual, phmnValue));
 					return true;
 				}
-			
+
 				//make a differnce in "normal rain"
 				if ( actualOvercast < 0.75 )
 				{
-					if ( m_chance < 30 )
+					if ( m_Chance < 30 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.1, 0.3 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
-						phmnLength = 0;
+						phmnLength = Math.RandomInt( m_WeatherDefaultSettings.m_RainLengthMin, m_WeatherDefaultSettings.m_RainLengthMax );
 					}
-					else if ( m_chance < 60 )
+					else if ( m_Chance < 60 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.2, 0.4 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
-						phmnLength = 0;
+						phmnLength = Math.RandomInt( m_WeatherDefaultSettings.m_RainLengthMin, m_WeatherDefaultSettings.m_RainLengthMax );
 					}
-					else if ( m_chance < 85 )
+					else if ( m_Chance < 85 )
 					{
-						phmnValue = Math.RandomFloatInclusive( 0.0, 0.2 );
+						phmnValue = Math.RandomFloatInclusive( 0.05, 0.2 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
-						phmnLength = 0;
+						phmnLength = Math.RandomInt( m_WeatherDefaultSettings.m_RainLengthMin, m_WeatherDefaultSettings.m_RainLengthMax );
 					}
 					else //also have the chance to not have rain at all
 					{
 						phmnValue = 0;
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
-						phmnLength = 120;
+						phmnLength = Math.RandomInt( m_WeatherDefaultSettings.m_RainLengthMin, m_WeatherDefaultSettings.m_RainLengthMax ) * 4;
 					}
 				}
-				else if ( actualOvercast < m_WeatherDefaultSettings.m_StormThreshold)
+				else //overcast between storm threshold and 0.75
 				{
-					if ( m_chance < 15 )
+					if ( m_Chance < 15 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.4, 0.6 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
 						phmnLength = 0;
 					}
-					else if ( m_chance < 50 )
+					else if ( m_Chance < 50 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.2, 0.4 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
 						phmnLength = 0;
 					}
-					else if ( m_chance < 90 )
+					else if ( m_Chance < 90 )
 					{
 						phmnValue = Math.RandomFloatInclusive( 0.6, 0.8 );
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
@@ -340,25 +443,10 @@ class EnochData : WorldData
 					{
 						phmnValue = 0;
 						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
-						phmnLength = 120;
+						phmnLength = Math.RandomInt( m_WeatherDefaultSettings.m_RainLengthMin, m_WeatherDefaultSettings.m_RainLengthMax ) * 4;
 					}
 				}
-				else
-				{
-					if ( m_chance < 50 )
-					{
-						phmnValue = Math.RandomFloatInclusive( 0.9, 1.0 );
-						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
-						phmnLength = 0;
-					}
-					else
-					{
-						phmnValue = Math.RandomFloatInclusive( 0.8, 0.9 );
-						phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
-						phmnLength = 0;
-					}
-				}
-		
+
 				m_Weather.GetRain().Set( phmnValue, phmnTime, phmnLength );
 
 				Debug.WeatherLog(string.Format("Enoch::Weather::Rain:: (%1) %2", g_Game.GetDayTime(), actual));
@@ -384,7 +472,7 @@ class EnochData : WorldData
 			case EWeatherPhenomenon.WIND_MAGNITUDE:
 			{
 				phmnTime = Math.RandomInt( m_WeatherDefaultSettings.m_RainTimeMin, m_WeatherDefaultSettings.m_RainTimeMax );
-				m_Weather.GetWindMagnitude().Set(m_Weather.GetWindMagnitude().GetActual() * 0.75, phmnTime , m_WeatherDefaultSettings.m_OvercastMaxTime); // next change will be happen with the overcast change
+				m_Weather.GetWindMagnitude().Set(m_Weather.GetWindMagnitude().GetActual() * 0.75, phmnTime , m_WeatherDefaultSettings.m_OvercastMaxLength); // next change will be happen with the overcast change
 			
 			return true;
 			}
@@ -471,21 +559,21 @@ class EnochData : WorldData
 		{
 			heightBias = m_Weather.GetDynVolFogHeightBias();
 			
-			if ( heightBias == m_DefaultHeigthBias ) //verify if the foggy morning check has been done
+			if ( heightBias == m_WeatherDefaultSettings.m_DefaultHeigthBias ) //verify if the foggy morning check has been done
 			{
 				bool foggyMorning = Math.RandomIntInclusive(0,1);
 				
 				if (foggyMorning)
 				{
-					heightBias = Math.RandomInt(m_FoggyMorningHeigthBiasLowLimit, m_DefaultHeigthBias);					
+					heightBias = Math.RandomInt(m_WeatherDefaultSettings.m_FoggyMorningHeigthBiasLowLimit, m_WeatherDefaultSettings.m_DefaultHeigthBias);					
 				}
 				else
 				{
-					heightBias = m_FoggyMorningHeigthBiasLowLimit - 1;
+					heightBias = m_WeatherDefaultSettings.m_FoggyMorningHeigthBiasLowLimit - 1;
 				}				
 			}
 			
-			if (heightBias == m_FoggyMorningHeigthBiasLowLimit - 1) //not foggy morning
+			if (heightBias == m_WeatherDefaultSettings.m_FoggyMorningHeigthBiasLowLimit - 1) //not foggy morning
 			{
 				distanceDensity = Math.Lerp( 0.01, 0.03, lerpValue ) * Math.Clamp(1 - (windMagnitude / m_Weather.GetWindMaximumSpeed()), 0.1, 1);	
 				heigthDensity = Math.Lerp( 0.9, 1, lerpValue);
@@ -500,18 +588,26 @@ class EnochData : WorldData
 		{
 			distanceDensity = Math.Lerp( 0.01, 0.05, lerpValue ) * Math.Clamp(1 - (windMagnitude / m_Weather.GetWindMaximumSpeed()), 0.1, 1);	
 			heigthDensity = Math.Lerp( 0.9, 1, lerpValue);
-			heightBias = m_DefaultHeigthBias;
+			heightBias = m_WeatherDefaultSettings.m_DefaultHeigthBias;
 		}
 		else
 		{
 			distanceDensity = Math.Lerp( 0.01, 0.03, lerpValue ) * Math.Clamp(1 - (windMagnitude / m_Weather.GetWindMaximumSpeed()), 0.1, 1);	
 			heigthDensity = Math.Lerp( 0.9, 1, lerpValue);
-			heightBias = m_DefaultHeigthBias;
+			heightBias = m_WeatherDefaultSettings.m_DefaultHeigthBias;
 		}
 				
 		m_Weather.SetDynVolFogDistanceDensity(distanceDensity, changeTime);
 		m_Weather.SetDynVolFogHeightDensity(heigthDensity, changeTime);
 		m_Weather.SetDynVolFogHeightBias(heightBias, changeTime);
+	}
+		
+	bool LogWeatherData() //called from mission file to check if the logging should start
+	{
+		#ifdef WEATHER_DATA_LOGGING
+		return true;
+		#endif
+		return false;
 	}
 
 	//! DEPRECATED (see WorldDataWeatherConstants)
@@ -530,4 +626,11 @@ class EnochData : WorldData
 	
 	protected int m_clearWeatherChance = m_ClearWeatherChance;
 	protected int m_badWeatherChance = m_BadWeatherChance;
+	
+	protected int m_sameWeatherCnt = m_SameWeatherCnt;
+	protected int m_stepValue = m_StepValue;
+	protected int m_chance = m_Chance;
+
+	protected int m_choosenWeather = m_ChoosenWeather;
+	protected int m_lastWeather = m_LastWeather;
 }

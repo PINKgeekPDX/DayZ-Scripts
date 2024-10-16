@@ -120,11 +120,11 @@ class PlayerConstants
 	static const float ENERGY_LOSS_HC_MINUS_LOW				= 0.2;
 	static const float ENERGY_LOSS_HC_MINUS_HIGH			= 0.45;
 	
-	static const float HEALTH_LOSS_HC_PLUS_LOW				= 0.02;
-	static const float HEALTH_LOSS_HC_PLUS_HIGH				= 0.15;		
+	static const float HEALTH_LOSS_HC_PLUS_LOW				= 0.035;
+	static const float HEALTH_LOSS_HC_PLUS_HIGH				= 0.30;		
 	
-	static const float HEALTH_LOSS_HC_MINUS_LOW				= 0.02;
-	static const float HEALTH_LOSS_HC_MINUS_HIGH 			= 0.15;	
+	static const float HEALTH_LOSS_HC_MINUS_LOW				= 0.035;
+	static const float HEALTH_LOSS_HC_MINUS_HIGH 			= 0.30;	
 	
 	static const float WATER_LOSS_FEVER						= 0.2;
 	
